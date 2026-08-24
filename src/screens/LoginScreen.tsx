@@ -8,7 +8,11 @@ import {
   View,
 } from 'react-native';
 
-function LoginScreen() {
+type LoginScreenProps = {
+  onLogin: () => void;
+};
+
+function LoginScreen({onLogin}: LoginScreenProps) {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [mostrarSenha, setMostrarSenha] = useState(false);
@@ -46,17 +50,24 @@ function LoginScreen() {
             secureTextEntry={!mostrarSenha}
           />
 
-          <TouchableOpacity onPress={() => setMostrarSenha(!mostrarSenha)}>
-            <Text style={styles.eye}>{mostrarSenha ? '●' : '◉'}</Text>
+          <TouchableOpacity
+            onPress={() => setMostrarSenha(!mostrarSenha)}>
+            <Text style={styles.eye}>
+              {mostrarSenha ? '●' : '◉'}
+            </Text>
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.loginButton}>
+        <TouchableOpacity
+          style={styles.loginButton}
+          onPress={onLogin}>
           <Text style={styles.loginButtonText}>Entrar</Text>
         </TouchableOpacity>
 
         <TouchableOpacity>
-          <Text style={styles.forgotPassword}>Esqueci minha senha</Text>
+          <Text style={styles.forgotPassword}>
+            Esqueci minha senha
+          </Text>
         </TouchableOpacity>
 
         <View style={styles.createAccountContainer}>
