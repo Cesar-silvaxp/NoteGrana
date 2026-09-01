@@ -1,55 +1,98 @@
 import React from 'react';
 import {
+  Pressable,
   SafeAreaView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 
-function DashboardScreen() {
+interface DashboardScreenProps {
+  onAbrirHistorico: () => void;
+}
+
+function DashboardScreen({
+  onAbrirHistorico,
+}: DashboardScreenProps) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         {/* Cabeçalho */}
         <View style={styles.header}>
-          <Text style={styles.greeting}>Olá, Pedro</Text>
-          <Text style={styles.month}>Março, 2026</Text>
+          <Text style={styles.greeting}>
+            Olá, Pedro
+          </Text>
+          <Text style={styles.month}>
+            Março, 2026
+          </Text>
         </View>
 
         {/* Total do mês */}
         <View style={styles.totalCard}>
-          <Text style={styles.totalLabel}>Total do Mês</Text>
-          <Text style={styles.totalValue}>R$ 1.300,00</Text>
+          <Text style={styles.totalLabel}>
+            Total do Mês
+          </Text>
+          <Text style={styles.totalValue}>
+            R$ 1.300,00
+          </Text>
         </View>
 
         {/* Últimos gastos */}
-        <Text style={styles.sectionTitle}>Últimos Gastos</Text>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>
+            Últimos Gastos
+          </Text>
+
+          <Pressable
+            onPress={onAbrirHistorico}
+            style={styles.historyButton}>
+            <Text style={styles.historyButtonText}>
+              Ver histórico
+            </Text>
+          </Pressable>
+        </View>
 
         <View style={styles.expensesContainer}>
           <View style={styles.expenseRow}>
-            <Text style={styles.expenseDate}>Hoje</Text>
-            <Text style={styles.expenseValue}>R$ 500,00</Text>
+            <Text style={styles.expenseDate}>
+              Hoje
+            </Text>
+            <Text style={styles.expenseValue}>
+              R$ 500,00
+            </Text>
           </View>
 
           <View style={styles.separator} />
 
           <View style={styles.expenseRow}>
-            <Text style={styles.expenseDate}>Ontem</Text>
-            <Text style={styles.expenseValue}>R$ 200,00</Text>
+            <Text style={styles.expenseDate}>
+              Ontem
+            </Text>
+            <Text style={styles.expenseValue}>
+              R$ 200,00
+            </Text>
           </View>
 
           <View style={styles.separator} />
 
           <View style={styles.expenseRow}>
-            <Text style={styles.expenseDate}>10 Mar</Text>
-            <Text style={styles.expenseValue}>R$ 500,00</Text>
+            <Text style={styles.expenseDate}>
+              10 Mar
+            </Text>
+            <Text style={styles.expenseValue}>
+              R$ 500,00
+            </Text>
           </View>
 
           <View style={styles.separator} />
 
           <View style={styles.expenseRow}>
-            <Text style={styles.expenseDate}>2 Mar</Text>
-            <Text style={styles.expenseValue}>R$ 100,00</Text>
+            <Text style={styles.expenseDate}>
+              2 Mar
+            </Text>
+            <Text style={styles.expenseValue}>
+              R$ 100,00
+            </Text>
           </View>
         </View>
       </View>
@@ -58,17 +101,23 @@ function DashboardScreen() {
       <View style={styles.bottomNavigation}>
         <View style={styles.navigationItem}>
           <View style={styles.navigationIcon} />
-          <Text style={styles.navigationText}>Dashboard</Text>
+          <Text style={styles.navigationText}>
+            Dashboard
+          </Text>
         </View>
 
         <View style={styles.navigationItem}>
           <View style={styles.navigationIcon} />
-          <Text style={styles.navigationText}>Relatórios</Text>
+          <Text style={styles.navigationText}>
+            Relatórios
+          </Text>
         </View>
 
         <View style={styles.navigationItem}>
           <View style={styles.navigationIcon} />
-          <Text style={styles.navigationText}>Configurações</Text>
+          <Text style={styles.navigationText}>
+            Configurações
+          </Text>
         </View>
       </View>
     </SafeAreaView>
@@ -125,6 +174,10 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
 
+  sectionHeader: {
+    marginBottom: 14,
+  },
+
   sectionTitle: {
     alignSelf: 'center',
     width: '85%',
@@ -133,7 +186,18 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: 9,
     fontSize: 13,
-    marginBottom: 14,
+  },
+
+  historyButton: {
+    alignSelf: 'flex-end',
+    marginTop: 8,
+    paddingVertical: 4,
+  },
+
+  historyButtonText: {
+    color: '#3F6B3A',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
 
   expensesContainer: {
