@@ -1,5 +1,6 @@
-import React from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {
+  NativeModules,
   Pressable,
   SafeAreaView,
   StyleSheet,
@@ -11,9 +12,148 @@ interface DashboardScreenProps {
   onAbrirHistorico: () => void;
 }
 
+interface Gasto {
+  id: string;
+  valor: number;
+  titulo: string;
+  descricao: string;
+  pacoteOrigem: string;
+  dataHora: number;
+  status: string;
+}
+
+const {GastoModule} = NativeModules;
+
 function DashboardScreen({
   onAbrirHistorico,
 }: DashboardScreenProps) {
+  const [gastos, setGastos] = useState<Gasto[]>([]);
+  const [carregando, setCarregando] = useState(true);
+
+  const carregarGastos = useCallback(async () => {
+    try {
+      setCarregando(true);
+
+      if (!GastoModule) {
+        console.error(
+          'GastoModule não está disponível.',
+        );
+        return;
+      }
+
+      const resultado: Gasto[] =
+        await GastoModule.listarGastos();
+
+      const gastosAtivos = resultado
+        .filter(gasto => gasto.status === 'ATIVO')
+        .sort((a, b) => b.dataHora - a.dataHora);
+
+      setGastos(gastosAtivos);
+    } catch (error) {
+      console.error(
+        'Erro ao carregar gastos no Dashboard:',
+        error,
+      );
+    } finally {
+      setCarregando(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    carregarGastos();
+  }, [carregarGastos]);
+
+  function formatarValor(valor: number) {
+    return valor.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    });
+  }
+
+  function obterNomeMes() {
+    const agora = new Date();
+
+    const mes = agora.toLocaleDateString(
+      'pt-BR',
+      {
+        month: 'long',
+        year: 'numeric',
+      },
+    );
+
+    return (
+      mes.charAt(0).toUpperCase() +
+      mes.slice(1)
+    );
+  }
+
+  function calcularTotalMes() {
+    const agora = new Date();
+
+    const mesAtual = agora.getMonth();
+    const anoAtual = agora.getFullYear();
+
+    return gastos
+      .filter(gasto => {
+        const data = new Date(gasto.dataHora);
+
+        return (
+          data.getMonth() === mesAtual &&
+          data.getFullYear() === anoAtual
+        );
+      })
+      .reduce(
+        (total, gasto) =>
+          total + gasto.valor,
+        0,
+      );
+  }
+
+  function formatarData(dataHora: number) {
+    const data = new Date(dataHora);
+
+    const hoje = new Date();
+
+    const inicioHoje = new Date(
+      hoje.getFullYear(),
+      hoje.getMonth(),
+      hoje.getDate(),
+    );
+
+    const inicioData = new Date(
+      data.getFullYear(),
+      data.getMonth(),
+      data.getDate(),
+    );
+
+    const diferencaDias = Math.round(
+      (inicioHoje.getTime() -
+        inicioData.getTime()) /
+        (1000 * 60 * 60 * 24),
+    );
+
+    if (diferencaDias === 0) {
+      return 'Hoje';
+    }
+
+    if (diferencaDias === 1) {
+      return 'Ontem';
+    }
+
+    return data.toLocaleDateString(
+      'pt-BR',
+      {
+        day: '2-digit',
+        month: 'short',
+      },
+    );
+  }
+
+  const totalMes = calcularTotalMes();
+
+  const ultimosGastos =
+    gastos.slice(0, 4);
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
@@ -22,8 +162,9 @@ function DashboardScreen({
           <Text style={styles.greeting}>
             Olá, Pedro
           </Text>
+
           <Text style={styles.month}>
-            Março, 2026
+            {obterNomeMes()}
           </Text>
         </View>
 
@@ -32,8 +173,11 @@ function DashboardScreen({
           <Text style={styles.totalLabel}>
             Total do Mês
           </Text>
+
           <Text style={styles.totalValue}>
-            R$ 1.300,00
+            {carregando
+              ? 'Carregando...'
+              : formatarValor(totalMes)}
           </Text>
         </View>
 
@@ -53,47 +197,53 @@ function DashboardScreen({
         </View>
 
         <View style={styles.expensesContainer}>
-          <View style={styles.expenseRow}>
-            <Text style={styles.expenseDate}>
-              Hoje
-            </Text>
-            <Text style={styles.expenseValue}>
-              R$ 500,00
-            </Text>
-          </View>
+          {carregando ? (
+            <View style={styles.messageRow}>
+              <Text style={styles.messageText}>
+                Carregando gastos...
+              </Text>
+            </View>
+          ) : ultimosGastos.length === 0 ? (
+            <View style={styles.messageRow}>
+              <Text style={styles.messageText}>
+                Nenhum gasto registrado
+              </Text>
+            </View>
+          ) : (
+            ultimosGastos.map(
+              (gasto, index) => (
+                <React.Fragment key={gasto.id}>
+                  <View style={styles.expenseRow}>
+                    <View>
+                      <Text style={styles.expenseDate}>
+                        {formatarData(
+                          gasto.dataHora,
+                        )}
+                      </Text>
 
-          <View style={styles.separator} />
+                      <Text style={styles.expenseTitle}>
+                        {gasto.titulo.trim()}
+                      </Text>
+                    </View>
 
-          <View style={styles.expenseRow}>
-            <Text style={styles.expenseDate}>
-              Ontem
-            </Text>
-            <Text style={styles.expenseValue}>
-              R$ 200,00
-            </Text>
-          </View>
+                    <Text style={styles.expenseValue}>
+                      {formatarValor(
+                        gasto.valor,
+                      )}
+                    </Text>
+                  </View>
 
-          <View style={styles.separator} />
-
-          <View style={styles.expenseRow}>
-            <Text style={styles.expenseDate}>
-              10 Mar
-            </Text>
-            <Text style={styles.expenseValue}>
-              R$ 500,00
-            </Text>
-          </View>
-
-          <View style={styles.separator} />
-
-          <View style={styles.expenseRow}>
-            <Text style={styles.expenseDate}>
-              2 Mar
-            </Text>
-            <Text style={styles.expenseValue}>
-              R$ 100,00
-            </Text>
-          </View>
+                  {index <
+                    ultimosGastos.length -
+                      1 && (
+                    <View
+                      style={styles.separator}
+                    />
+                  )}
+                </React.Fragment>
+              ),
+            )
+          )}
         </View>
       </View>
 
@@ -208,8 +358,9 @@ const styles = StyleSheet.create({
   },
 
   expenseRow: {
-    height: 50,
+    minHeight: 50,
     paddingHorizontal: 18,
+    paddingVertical: 8,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -220,6 +371,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
 
+  expenseTitle: {
+    color: '#777777',
+    fontSize: 9,
+    marginTop: 2,
+  },
+
   expenseValue: {
     color: '#222222',
     fontSize: 11,
@@ -228,6 +385,17 @@ const styles = StyleSheet.create({
   separator: {
     height: 1,
     backgroundColor: '#DDDDDD',
+  },
+
+  messageRow: {
+    height: 70,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  messageText: {
+    color: '#777777',
+    fontSize: 11,
   },
 
   bottomNavigation: {
