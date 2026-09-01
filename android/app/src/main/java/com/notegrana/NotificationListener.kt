@@ -54,7 +54,7 @@ class NotificationListener : NotificationListenerService() {
             return
         }
 
-        // Verifica se a notificação representa uma transação financeira
+        // Verifica se a notificação possui padrão financeiro
         val financial =
             NotificationProcessor.isFinancialTransaction(
                 title,
@@ -86,7 +86,7 @@ class NotificationListener : NotificationListenerService() {
             return
         }
 
-        // Cria automaticamente o gasto
+        // Cria o gasto
         val gasto = Gasto(
             id = UUID.randomUUID().toString(),
             valor = value,
@@ -96,41 +96,55 @@ class NotificationListener : NotificationListenerService() {
             dataHora = System.currentTimeMillis()
         )
 
-        // Salva o último gasto registrado para validação
-        getSharedPreferences(
-            "notegrana_ultimo_gasto",
-            MODE_PRIVATE
-        )
-            .edit()
-            .putString("id", gasto.id)
-            .putString("valor", gasto.valor.toString())
-            .putString("titulo", gasto.titulo)
-            .putString("descricao", gasto.descricao)
-            .putString("package", gasto.pacoteOrigem)
-            .putLong("dataHora", gasto.dataHora)
-            .putString("status", gasto.status)
-            .apply()
+        // Abre o banco local
+        val database =
+            GastoDatabaseHelper(applicationContext)
 
-        // Mantém também os dados técnicos da notificação
-        getSharedPreferences(
-            "notegrana_notifications",
-            MODE_PRIVATE
-        )
-            .edit()
-            .putString(
-                "status",
-                "GASTO_REGISTRADO_AUTOMATICAMENTE"
+        // Insere o gasto no SQLite
+        val inserido =
+            database.inserirGasto(gasto)
+
+        if (inserido) {
+
+            // Conta quantos gastos existem no banco
+            val totalGastos =
+                database.contarGastos()
+
+            Log.e(
+                "NoteGranaNotification",
+                "GASTO SALVO NO SQLITE - R$ ${gasto.valor}"
             )
-            .putString("package", packageName)
-            .putString("titulo", title)
-            .putString("texto", text)
-            .putString("valor", value.toString())
-            .apply()
 
-        Log.e(
-            "NoteGranaNotification",
-            "GASTO REGISTRADO - R$ ${gasto.valor}"
-        )
+            Log.e(
+                "NoteGranaNotification",
+                "TOTAL DE GASTOS NO SQLITE: $totalGastos"
+            )
+
+            // Mantemos o SharedPreferences somente
+            // como apoio para os testes desta etapa
+            getSharedPreferences(
+                "notegrana_notifications",
+                MODE_PRIVATE
+            )
+                .edit()
+                .putString(
+                    "status",
+                    "GASTO_SALVO_NO_SQLITE"
+                )
+                .putString("package", packageName)
+                .putString("titulo", title)
+                .putString("texto", text)
+                .putString("valor", value.toString())
+                .putString("id", gasto.id)
+                .putInt("total_gastos", totalGastos)
+                .apply()
+
+        } else {
+            Log.e(
+                "NoteGranaNotification",
+                "ERRO AO SALVAR GASTO NO SQLITE"
+            )
+        }
     }
 
     override fun onListenerDisconnected() {
