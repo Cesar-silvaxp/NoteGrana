@@ -1,4 +1,8 @@
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useState,
+} from 'react';
 import {
   ActivityIndicator,
   NativeModules,
@@ -22,45 +26,59 @@ interface Gasto {
 
 interface HistoricoScreenProps {
   onVoltar: () => void;
+  onSelecionarGasto: (gasto: Gasto) => void;
 }
 
 const {GastoModule} = NativeModules;
 
-function HistoricoScreen({onVoltar}: HistoricoScreenProps) {
-  const [gastos, setGastos] = useState<Gasto[]>([]);
-  const [carregando, setCarregando] = useState(true);
+function HistoricoScreen({
+  onVoltar,
+  onSelecionarGasto,
+}: HistoricoScreenProps) {
+  const [gastos, setGastos] =
+    useState<Gasto[]>([]);
+
+  const [carregando, setCarregando] =
+    useState(true);
+
   const [erro, setErro] = useState('');
 
-  const carregarGastos = useCallback(async () => {
-    try {
-      setCarregando(true);
-      setErro('');
+  const carregarGastos =
+    useCallback(async () => {
+      try {
+        setCarregando(true);
+        setErro('');
 
-      if (!GastoModule) {
-        throw new Error('GastoModule não está disponível.');
+        if (!GastoModule) {
+          throw new Error(
+            'GastoModule não está disponível.',
+          );
+        }
+
+        const resultado: Gasto[] =
+          await GastoModule.listarGastos();
+
+        const gastosOrdenados = [
+          ...resultado,
+        ].sort(
+          (a, b) =>
+            b.dataHora - a.dataHora,
+        );
+
+        setGastos(gastosOrdenados);
+      } catch (error) {
+        console.error(
+          'Erro ao carregar gastos:',
+          error,
+        );
+
+        setErro(
+          'Não foi possível carregar o histórico de gastos.',
+        );
+      } finally {
+        setCarregando(false);
       }
-
-      const resultado: Gasto[] =
-        await GastoModule.listarGastos();
-
-      const gastosOrdenados = [...resultado].sort(
-        (a, b) => b.dataHora - a.dataHora,
-      );
-
-      setGastos(gastosOrdenados);
-    } catch (error) {
-      console.error(
-        'Erro ao carregar gastos:',
-        error,
-      );
-
-      setErro(
-        'Não foi possível carregar o histórico de gastos.',
-      );
-    } finally {
-      setCarregando(false);
-    }
-  }, []);
+    }, []);
 
   useEffect(() => {
     carregarGastos();
@@ -76,20 +94,26 @@ function HistoricoScreen({onVoltar}: HistoricoScreenProps) {
   function formatarData(dataHora: number) {
     const data = new Date(dataHora);
 
-    return data.toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
+    return data.toLocaleDateString(
+      'pt-BR',
+      {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      },
+    );
   }
 
   function formatarHora(dataHora: number) {
     const data = new Date(dataHora);
 
-    return data.toLocaleTimeString('pt-BR', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return data.toLocaleTimeString(
+      'pt-BR',
+      {
+        hour: '2-digit',
+        minute: '2-digit',
+      },
+    );
   }
 
   return (
@@ -113,6 +137,7 @@ function HistoricoScreen({onVoltar}: HistoricoScreenProps) {
       {carregando ? (
         <View style={styles.centerContent}>
           <ActivityIndicator size="large" />
+
           <Text style={styles.loadingText}>
             Carregando gastos...
           </Text>
@@ -138,13 +163,15 @@ function HistoricoScreen({onVoltar}: HistoricoScreenProps) {
           </Text>
 
           <Text style={styles.emptyText}>
-            Os gastos identificados pelas notificações
-            aparecerão aqui.
+            Os gastos identificados pelas
+            notificações aparecerão aqui.
           </Text>
         </View>
       ) : (
         <ScrollView
-          contentContainerStyle={styles.listContent}>
+          contentContainerStyle={
+            styles.listContent
+          }>
           <Text style={styles.totalRecords}>
             {gastos.length}{' '}
             {gastos.length === 1
@@ -153,35 +180,64 @@ function HistoricoScreen({onVoltar}: HistoricoScreenProps) {
           </Text>
 
           {gastos.map(gasto => (
-            <View
+            <Pressable
               key={gasto.id}
-              style={styles.expenseCard}>
-              <View style={styles.expenseHeader}>
-                <Text style={styles.expenseTitle}>
+              style={({pressed}) => [
+                styles.expenseCard,
+                pressed &&
+                  styles.expenseCardPressed,
+              ]}
+              onPress={() =>
+                onSelecionarGasto(gasto)
+              }>
+              <View
+                style={styles.expenseHeader}>
+                <Text
+                  style={styles.expenseTitle}>
                   {gasto.titulo.trim() ||
                     'Gasto registrado'}
                 </Text>
 
-                <Text style={styles.expenseValue}>
-                  {formatarValor(gasto.valor)}
+                <Text
+                  style={styles.expenseValue}>
+                  {formatarValor(
+                    gasto.valor,
+                  )}
                 </Text>
               </View>
 
-              <Text style={styles.expenseDescription}>
+              <Text
+                style={
+                  styles.expenseDescription
+                }>
                 {gasto.descricao}
               </Text>
 
-              <View style={styles.expenseFooter}>
-                <Text style={styles.expenseDate}>
-                  {formatarData(gasto.dataHora)} às{' '}
-                  {formatarHora(gasto.dataHora)}
+              <View
+                style={styles.expenseFooter}>
+                <Text
+                  style={styles.expenseDate}>
+                  {formatarData(
+                    gasto.dataHora,
+                  )}{' '}
+                  às{' '}
+                  {formatarHora(
+                    gasto.dataHora,
+                  )}
                 </Text>
 
-                <Text style={styles.expenseStatus}>
+                <Text
+                  style={
+                    styles.expenseStatus
+                  }>
                   {gasto.status}
                 </Text>
               </View>
-            </View>
+
+              <Text style={styles.detailsHint}>
+                Toque para ver detalhes
+              </Text>
+            </Pressable>
           ))}
         </ScrollView>
       )}
@@ -294,6 +350,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
 
+  expenseCardPressed: {
+    opacity: 0.65,
+  },
+
   expenseHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -341,6 +401,13 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     fontSize: 9,
     fontWeight: 'bold',
+  },
+
+  detailsHint: {
+    color: '#999999',
+    fontSize: 9,
+    marginTop: 10,
+    textAlign: 'right',
   },
 });
 
