@@ -3,6 +3,7 @@ import LoginScreen from './src/screens/LoginScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
 import HistoricoScreen from './src/screens/HistoricoScreen';
 import DetalhesGastoScreen from './src/screens/DetalhesGastoScreen';
+import RelatorioScreen from './src/screens/RelatorioScreen';
 
 interface Gasto {
   id: string;
@@ -17,7 +18,8 @@ interface Gasto {
 type Tela =
   | 'dashboard'
   | 'historico'
-  | 'detalhes';
+  | 'detalhes'
+  | 'relatorios';
 
 function App() {
   const [logado, setLogado] =
@@ -70,10 +72,23 @@ function App() {
     );
   }
 
+  if (tela === 'relatorios') {
+    return (
+      <RelatorioScreen
+        onAbrirDashboard={() =>
+          setTela('dashboard')
+        }
+      />
+    );
+  }
+
   return (
     <DashboardScreen
       onAbrirHistorico={() =>
         setTela('historico')
+      }
+      onAbrirRelatorios={() =>
+        setTela('relatorios')
       }
     />
   );

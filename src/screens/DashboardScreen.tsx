@@ -1,4 +1,8 @@
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useState,
+} from 'react';
 import {
   NativeModules,
   Pressable,
@@ -10,6 +14,7 @@ import {
 
 interface DashboardScreenProps {
   onAbrirHistorico: () => void;
+  onAbrirRelatorios: () => void;
 }
 
 interface Gasto {
@@ -26,9 +31,11 @@ const {GastoModule} = NativeModules;
 
 function DashboardScreen({
   onAbrirHistorico,
+  onAbrirRelatorios,
 }: DashboardScreenProps) {
   const [gastos, setGastos] = useState<Gasto[]>([]);
-  const [carregando, setCarregando] = useState(true);
+  const [carregando, setCarregando] =
+    useState(true);
 
   const carregarGastos = useCallback(async () => {
     try {
@@ -45,8 +52,13 @@ function DashboardScreen({
         await GastoModule.listarGastos();
 
       const gastosAtivos = resultado
-        .filter(gasto => gasto.status === 'ATIVO')
-        .sort((a, b) => b.dataHora - a.dataHora);
+        .filter(
+          gasto => gasto.status === 'ATIVO',
+        )
+        .sort(
+          (a, b) =>
+            b.dataHora - a.dataHora,
+        );
 
       setGastos(gastosAtivos);
     } catch (error) {
@@ -95,7 +107,8 @@ function DashboardScreen({
 
     return gastos
       .filter(gasto => {
-        const data = new Date(gasto.dataHora);
+        const data =
+          new Date(gasto.dataHora);
 
         return (
           data.getMonth() === mesAtual &&
@@ -190,7 +203,10 @@ function DashboardScreen({
           <Pressable
             onPress={onAbrirHistorico}
             style={styles.historyButton}>
-            <Text style={styles.historyButtonText}>
+            <Text
+              style={
+                styles.historyButtonText
+              }>
               Ver histórico
             </Text>
           </Pressable>
@@ -199,34 +215,47 @@ function DashboardScreen({
         <View style={styles.expensesContainer}>
           {carregando ? (
             <View style={styles.messageRow}>
-              <Text style={styles.messageText}>
+              <Text
+                style={styles.messageText}>
                 Carregando gastos...
               </Text>
             </View>
           ) : ultimosGastos.length === 0 ? (
             <View style={styles.messageRow}>
-              <Text style={styles.messageText}>
+              <Text
+                style={styles.messageText}>
                 Nenhum gasto registrado
               </Text>
             </View>
           ) : (
             ultimosGastos.map(
               (gasto, index) => (
-                <React.Fragment key={gasto.id}>
-                  <View style={styles.expenseRow}>
+                <React.Fragment
+                  key={gasto.id}>
+                  <View
+                    style={styles.expenseRow}>
                     <View>
-                      <Text style={styles.expenseDate}>
+                      <Text
+                        style={
+                          styles.expenseDate
+                        }>
                         {formatarData(
                           gasto.dataHora,
                         )}
                       </Text>
 
-                      <Text style={styles.expenseTitle}>
+                      <Text
+                        style={
+                          styles.expenseTitle
+                        }>
                         {gasto.titulo.trim()}
                       </Text>
                     </View>
 
-                    <Text style={styles.expenseValue}>
+                    <Text
+                      style={
+                        styles.expenseValue
+                      }>
                       {formatarValor(
                         gasto.valor,
                       )}
@@ -237,7 +266,9 @@ function DashboardScreen({
                     ultimosGastos.length -
                       1 && (
                     <View
-                      style={styles.separator}
+                      style={
+                        styles.separator
+                      }
                     />
                   )}
                 </React.Fragment>
@@ -250,22 +281,35 @@ function DashboardScreen({
       {/* Menu inferior */}
       <View style={styles.bottomNavigation}>
         <View style={styles.navigationItem}>
-          <View style={styles.navigationIcon} />
-          <Text style={styles.navigationText}>
+          <View
+            style={[
+              styles.navigationIcon,
+              styles.navigationIconActive,
+            ]}
+          />
+
+          <Text
+            style={styles.navigationText}>
             Dashboard
           </Text>
         </View>
 
-        <View style={styles.navigationItem}>
+        <Pressable
+          style={styles.navigationItem}
+          onPress={onAbrirRelatorios}>
           <View style={styles.navigationIcon} />
-          <Text style={styles.navigationText}>
+
+          <Text
+            style={styles.navigationText}>
             Relatórios
           </Text>
-        </View>
+        </Pressable>
 
         <View style={styles.navigationItem}>
           <View style={styles.navigationIcon} />
-          <Text style={styles.navigationText}>
+
+          <Text
+            style={styles.navigationText}>
             Configurações
           </Text>
         </View>
@@ -421,6 +465,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#3F6B3A',
     marginBottom: 5,
+  },
+
+  navigationIconActive: {
+    borderWidth: 2,
+    borderColor: '#222222',
   },
 
   navigationText: {
