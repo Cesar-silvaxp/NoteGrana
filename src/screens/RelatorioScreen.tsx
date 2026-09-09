@@ -28,6 +28,7 @@ interface Gasto {
 
 interface RelatorioScreenProps {
   onAbrirDashboard: () => void;
+  onAbrirConfiguracoes: () => void;
 }
 
 interface MesSelecionado {
@@ -69,56 +70,75 @@ const mesesCurtos = [
 
 function RelatorioScreen({
   onAbrirDashboard,
+  onAbrirConfiguracoes,
 }: RelatorioScreenProps) {
-  const [gastos, setGastos] = useState<Gasto[]>([]);
-  const [carregando, setCarregando] = useState(true);
-  const [modalAberto, setModalAberto] = useState(false);
+  const [gastos, setGastos] =
+    useState<Gasto[]>([]);
+
+  const [carregando, setCarregando] =
+    useState(true);
+
+  const [modalAberto, setModalAberto] =
+    useState(false);
 
   const agora = new Date();
 
-  const [mesSelecionado, setMesSelecionado] =
-    useState<MesSelecionado>({
-      ano: agora.getFullYear(),
-      mes: agora.getMonth(),
-    });
+  const [
+    mesSelecionado,
+    setMesSelecionado,
+  ] = useState<MesSelecionado>({
+    ano: agora.getFullYear(),
+    mes: agora.getMonth(),
+  });
 
-  const carregarGastos = useCallback(async () => {
-    try {
-      setCarregando(true);
+  const carregarGastos =
+    useCallback(async () => {
+      try {
+        setCarregando(true);
 
-      if (!GastoModule) {
-        throw new Error(
-          'GastoModule não está disponível.',
+        if (!GastoModule) {
+          throw new Error(
+            'GastoModule não está disponível.',
+          );
+        }
+
+        const resultado: Gasto[] =
+          await GastoModule.listarGastos();
+
+        const ativos = resultado
+          .filter(
+            gasto =>
+              gasto.status === 'ATIVO',
+          )
+          .sort(
+            (a, b) =>
+              b.dataHora - a.dataHora,
+          );
+
+        setGastos(ativos);
+
+        if (ativos.length > 0) {
+          const dataMaisRecente =
+            new Date(
+              ativos[0].dataHora,
+            );
+
+          setMesSelecionado({
+            ano:
+              dataMaisRecente.getFullYear(),
+            mes:
+              dataMaisRecente.getMonth(),
+          });
+        }
+      } catch (error) {
+        console.error(
+          'Erro ao carregar relatório:',
+          error,
         );
+      } finally {
+        setCarregando(false);
       }
-
-      const resultado: Gasto[] =
-        await GastoModule.listarGastos();
-
-      const ativos = resultado
-        .filter(gasto => gasto.status === 'ATIVO')
-        .sort((a, b) => b.dataHora - a.dataHora);
-
-      setGastos(ativos);
-
-      if (ativos.length > 0) {
-        const dataMaisRecente =
-          new Date(ativos[0].dataHora);
-
-        setMesSelecionado({
-          ano: dataMaisRecente.getFullYear(),
-          mes: dataMaisRecente.getMonth(),
-        });
-      }
-    } catch (error) {
-      console.error(
-        'Erro ao carregar relatório:',
-        error,
-      );
-    } finally {
-      setCarregando(false);
-    }
-  }, []);
+    }, []);
 
   useEffect(() => {
     carregarGastos();
@@ -126,24 +146,33 @@ function RelatorioScreen({
 
   const gastosMes = useMemo(() => {
     return gastos.filter(gasto => {
-      const data = new Date(gasto.dataHora);
+      const data =
+        new Date(gasto.dataHora);
 
       return (
-        data.getFullYear() === mesSelecionado.ano &&
-        data.getMonth() === mesSelecionado.mes
+        data.getFullYear() ===
+          mesSelecionado.ano &&
+        data.getMonth() ===
+          mesSelecionado.mes
       );
     });
   }, [gastos, mesSelecionado]);
 
   const totalMes = useMemo(() => {
     return gastosMes.reduce(
-      (total, gasto) => total + gasto.valor,
+      (total, gasto) =>
+        total + gasto.valor,
       0,
     );
   }, [gastosMes]);
 
   const mesesGrafico = useMemo(() => {
-    const resultado = [];
+    const resultado: {
+      ano: number;
+      mes: number;
+      total: number;
+      selecionado: boolean;
+    }[] = [];
 
     for (
       let deslocamento = -2;
@@ -152,7 +181,8 @@ function RelatorioScreen({
     ) {
       const data = new Date(
         mesSelecionado.ano,
-        mesSelecionado.mes + deslocamento,
+        mesSelecionado.mes +
+          deslocamento,
         1,
       );
 
@@ -162,11 +192,15 @@ function RelatorioScreen({
       const total = gastos
         .filter(gasto => {
           const dataGasto =
-            new Date(gasto.dataHora);
+            new Date(
+              gasto.dataHora,
+            );
 
           return (
-            dataGasto.getFullYear() === ano &&
-            dataGasto.getMonth() === mes
+            dataGasto.getFullYear() ===
+              ano &&
+            dataGasto.getMonth() ===
+              mes
           );
         })
         .reduce(
@@ -180,21 +214,27 @@ function RelatorioScreen({
         mes,
         total,
         selecionado:
-          ano === mesSelecionado.ano &&
-          mes === mesSelecionado.mes,
+          ano ===
+            mesSelecionado.ano &&
+          mes ===
+            mesSelecionado.mes,
       });
     }
 
     return resultado;
   }, [gastos, mesSelecionado]);
 
-  const maiorValorGrafico = Math.max(
-    ...mesesGrafico.map(item => item.total),
-    1,
-  );
+  const maiorValorGrafico =
+    Math.max(
+      ...mesesGrafico.map(
+        item => item.total,
+      ),
+      1,
+    );
 
   const opcoesMes = useMemo(() => {
-    const opcoes: MesSelecionado[] = [];
+    const opcoes: MesSelecionado[] =
+      [];
 
     const centro = new Date(
       mesSelecionado.ano,
@@ -221,21 +261,31 @@ function RelatorioScreen({
     mesSelecionado.mes,
   ]);
 
-  function formatarValor(valor: number) {
-    return valor.toLocaleString('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    });
+  function formatarValor(
+    valor: number,
+  ) {
+    return valor.toLocaleString(
+      'pt-BR',
+      {
+        style: 'currency',
+        currency: 'BRL',
+      },
+    );
   }
 
-  function formatarData(dataHora: number) {
+  function formatarData(
+    dataHora: number,
+  ) {
     return new Date(
       dataHora,
-    ).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
+    ).toLocaleDateString(
+      'pt-BR',
+      {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      },
+    );
   }
 
   function nomeMes(
@@ -246,18 +296,25 @@ function RelatorioScreen({
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={styles.container}>
       <ScrollView
-        contentContainerStyle={styles.content}>
+        contentContainerStyle={
+          styles.content
+        }>
         <Text style={styles.title}>
           Relatórios
         </Text>
 
         <Pressable
           style={styles.monthSelector}
-          onPress={() => setModalAberto(true)}>
+          onPress={() =>
+            setModalAberto(true)
+          }>
           <Text
-            style={styles.monthSelectorText}>
+            style={
+              styles.monthSelectorText
+            }>
             {nomeMes(
               mesSelecionado.mes,
               mesSelecionado.ano,
@@ -269,144 +326,195 @@ function RelatorioScreen({
           </Text>
         </Pressable>
 
-        <View style={styles.sectionTitle}>
+        <View
+          style={styles.sectionTitle}>
           <Text
-            style={styles.sectionTitleText}>
+            style={
+              styles.sectionTitleText
+            }>
             Despesas mensais
           </Text>
         </View>
 
         {carregando ? (
           <View style={styles.loading}>
-            <ActivityIndicator size="large" />
+            <ActivityIndicator
+              size="large"
+            />
           </View>
         ) : (
           <>
-            <View style={styles.chartCard}>
-              <View style={styles.chartArea}>
-                {mesesGrafico.map(item => {
-                  const altura =
-                    item.total === 0
-                      ? 2
-                      : Math.max(
-                          4,
-                          (item.total /
-                            maiorValorGrafico) *
-                            85,
-                        );
+            <View
+              style={styles.chartCard}>
+              <View
+                style={
+                  styles.chartArea
+                }>
+                {mesesGrafico.map(
+                  item => {
+                    const altura =
+                      item.total === 0
+                        ? 2
+                        : Math.max(
+                            4,
+                            (item.total /
+                              maiorValorGrafico) *
+                              85,
+                          );
 
-                  return (
-                    <View
-                      key={`${item.ano}-${item.mes}`}
-                      style={
-                        styles.chartColumn
-                      }>
-                      <View style={styles.barArea}>
-                        {item.selecionado &&
-                          item.total > 0 && (
-                            <Text
-                              style={
-                                styles.chartValue
-                              }>
-                              {formatarValor(
-                                item.total,
-                              )}
-                            </Text>
-                          )}
-
-                        <View
-                          style={[
-                            styles.bar,
-                            {
-                              height: altura,
-                            },
-                            item.selecionado
-                              ? styles.selectedBar
-                              : styles.normalBar,
-                          ]}
-                        />
-                      </View>
-
-                      <Text
+                    return (
+                      <View
+                        key={`${item.ano}-${item.mes}`}
                         style={
-                          styles.chartMonth
+                          styles.chartColumn
                         }>
-                        {mesesCurtos[item.mes]}
-                      </Text>
-                    </View>
-                  );
-                })}
+                        <View
+                          style={
+                            styles.barArea
+                          }>
+                          {item.selecionado &&
+                            item.total >
+                              0 && (
+                              <Text
+                                style={
+                                  styles.chartValue
+                                }>
+                                {formatarValor(
+                                  item.total,
+                                )}
+                              </Text>
+                            )}
+
+                          <View
+                            style={[
+                              styles.bar,
+                              {
+                                height:
+                                  altura,
+                              },
+                              item.selecionado
+                                ? styles.selectedBar
+                                : styles.normalBar,
+                            ]}
+                          />
+                        </View>
+
+                        <Text
+                          style={
+                            styles.chartMonth
+                          }>
+                          {
+                            mesesCurtos[
+                              item.mes
+                            ]
+                          }
+                        </Text>
+                      </View>
+                    );
+                  },
+                )}
               </View>
             </View>
 
-            <View style={styles.totalCard}>
-              <Text style={styles.totalLabel}>
+            <View
+              style={styles.totalCard}>
+              <Text
+                style={
+                  styles.totalLabel
+                }>
                 Total do Mês
               </Text>
 
-              <Text style={styles.totalValue}>
-                {formatarValor(totalMes)}
+              <Text
+                style={
+                  styles.totalValue
+                }>
+                {formatarValor(
+                  totalMes,
+                )}
               </Text>
 
               <View
-                style={styles.totalSeparator}
+                style={
+                  styles.totalSeparator
+                }
               />
 
-              {gastosMes.length === 0 ? (
+              {gastosMes.length ===
+              0 ? (
                 <View
                   style={
                     styles.emptyContainer
                   }>
                   <Text
-                    style={styles.emptyText}>
+                    style={
+                      styles.emptyText
+                    }>
                     Nenhum gasto neste mês
                   </Text>
                 </View>
               ) : (
-                gastosMes.map(gasto => (
-                  <View
-                    key={gasto.id}
-                    style={styles.expenseRow}>
-                    <Text
+                gastosMes.map(
+                  gasto => (
+                    <View
+                      key={gasto.id}
                       style={
-                        styles.expenseDate
+                        styles.expenseRow
                       }>
-                      {formatarData(
-                        gasto.dataHora,
-                      )}
-                    </Text>
+                      <Text
+                        style={
+                          styles.expenseDate
+                        }>
+                        {formatarData(
+                          gasto.dataHora,
+                        )}
+                      </Text>
 
-                    <Text
-                      style={
-                        styles.expenseValue
-                      }>
-                      {formatarValor(
-                        gasto.valor,
-                      )}
-                    </Text>
-                  </View>
-                ))
+                      <Text
+                        style={
+                          styles.expenseValue
+                        }>
+                        {formatarValor(
+                          gasto.valor,
+                        )}
+                      </Text>
+                    </View>
+                  ),
+                )
               )}
             </View>
           </>
         )}
       </ScrollView>
 
-      <View style={styles.bottomNavigation}>
+      {/* Menu inferior */}
+      <View
+        style={
+          styles.bottomNavigation
+        }>
         <Pressable
-          style={styles.navigationItem}
+          style={
+            styles.navigationItem
+          }
           onPress={onAbrirDashboard}>
           <View
-            style={styles.navigationIcon}
+            style={
+              styles.navigationIcon
+            }
           />
 
           <Text
-            style={styles.navigationText}>
+            style={
+              styles.navigationText
+            }>
             Dashboard
           </Text>
         </Pressable>
 
-        <View style={styles.navigationItem}>
+        <View
+          style={
+            styles.navigationItem
+          }>
           <View
             style={[
               styles.navigationIcon,
@@ -415,23 +523,36 @@ function RelatorioScreen({
           />
 
           <Text
-            style={styles.navigationText}>
+            style={
+              styles.navigationText
+            }>
             Relatórios
           </Text>
         </View>
 
-        <View style={styles.navigationItem}>
+        <Pressable
+          style={
+            styles.navigationItem
+          }
+          onPress={
+            onAbrirConfiguracoes
+          }>
           <View
-            style={styles.navigationIcon}
+            style={
+              styles.navigationIcon
+            }
           />
 
           <Text
-            style={styles.navigationText}>
+            style={
+              styles.navigationText
+            }>
             Configurações
           </Text>
-        </View>
+        </Pressable>
       </View>
 
+      {/* Seleção de mês */}
       <Modal
         visible={modalAberto}
         transparent
@@ -444,32 +565,44 @@ function RelatorioScreen({
           onPress={() =>
             setModalAberto(false)
           }>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
+          <View
+            style={
+              styles.modalContent
+            }>
+            <Text
+              style={styles.modalTitle}>
               Selecionar mês
             </Text>
 
             <ScrollView
               style={styles.monthList}>
-              {opcoesMes.map(opcao => (
-                <Pressable
-                  key={`${opcao.ano}-${opcao.mes}`}
-                  style={styles.monthOption}
-                  onPress={() => {
-                    setMesSelecionado(opcao);
-                    setModalAberto(false);
-                  }}>
-                  <Text
+              {opcoesMes.map(
+                opcao => (
+                  <Pressable
+                    key={`${opcao.ano}-${opcao.mes}`}
                     style={
-                      styles.monthOptionText
-                    }>
-                    {nomeMes(
-                      opcao.mes,
-                      opcao.ano,
-                    )}
-                  </Text>
-                </Pressable>
-              ))}
+                      styles.monthOption
+                    }
+                    onPress={() => {
+                      setMesSelecionado(
+                        opcao,
+                      );
+                      setModalAberto(
+                        false,
+                      );
+                    }}>
+                    <Text
+                      style={
+                        styles.monthOptionText
+                      }>
+                      {nomeMes(
+                        opcao.mes,
+                        opcao.ano,
+                      )}
+                    </Text>
+                  </Pressable>
+                ),
+              )}
             </ScrollView>
           </View>
         </Pressable>
@@ -478,267 +611,269 @@ function RelatorioScreen({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
+const styles =
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: '#FFFFFF',
+    },
 
-  content: {
-    paddingHorizontal: 18,
-    paddingTop: 30,
-    paddingBottom: 100,
-  },
+    content: {
+      paddingHorizontal: 18,
+      paddingTop: 30,
+      paddingBottom: 100,
+    },
 
-  title: {
-    color: '#3F6B3A',
-    fontSize: 18,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 28,
-  },
+    title: {
+      color: '#3F6B3A',
+      fontSize: 18,
+      fontWeight: 'bold',
+      textAlign: 'center',
+      marginBottom: 28,
+    },
 
-  monthSelector: {
-    height: 42,
-    backgroundColor: '#BDEBB9',
-    borderRadius: 12,
-    paddingHorizontal: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 42,
-  },
+    monthSelector: {
+      height: 42,
+      backgroundColor: '#BDEBB9',
+      borderRadius: 12,
+      paddingHorizontal: 18,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent:
+        'space-between',
+      marginBottom: 42,
+    },
 
-  monthSelectorText: {
-    color: '#222222',
-    fontSize: 12,
-  },
+    monthSelectorText: {
+      color: '#222222',
+      fontSize: 12,
+    },
 
-  arrow: {
-    color: '#3F6B3A',
-    fontSize: 11,
-  },
+    arrow: {
+      color: '#3F6B3A',
+      fontSize: 11,
+    },
 
-  sectionTitle: {
-    width: '84%',
-    alignSelf: 'center',
-    backgroundColor: '#F3F3F3',
-    paddingVertical: 9,
-    borderRadius: 2,
-    marginBottom: 52,
-  },
+    sectionTitle: {
+      width: '84%',
+      alignSelf: 'center',
+      backgroundColor: '#F3F3F3',
+      paddingVertical: 9,
+      borderRadius: 2,
+      marginBottom: 52,
+    },
 
-  sectionTitleText: {
-    color: '#222222',
-    fontSize: 17,
-    textAlign: 'center',
-  },
+    sectionTitleText: {
+      color: '#222222',
+      fontSize: 17,
+      textAlign: 'center',
+    },
 
-  loading: {
-    height: 250,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+    loading: {
+      height: 250,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
 
-  chartCard: {
-    height: 205,
-    borderWidth: 1,
-    borderColor: '#555555',
-    borderRadius: 25,
-    paddingHorizontal: 18,
-    paddingTop: 25,
-    paddingBottom: 15,
-    marginBottom: 34,
-  },
+    chartCard: {
+      height: 205,
+      borderWidth: 1,
+      borderColor: '#555555',
+      borderRadius: 25,
+      paddingHorizontal: 18,
+      paddingTop: 25,
+      paddingBottom: 15,
+      marginBottom: 34,
+    },
 
-  chartArea: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-around',
-    borderBottomWidth: 1,
-    borderBottomColor: '#CCCCCC',
-  },
+    chartArea: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      justifyContent:
+        'space-around',
+      borderBottomWidth: 1,
+      borderBottomColor:
+        '#CCCCCC',
+    },
 
-  chartColumn: {
-    flex: 1,
-    alignItems: 'center',
-  },
+    chartColumn: {
+      flex: 1,
+      alignItems: 'center',
+    },
 
-  barArea: {
-    height: 115,
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-  },
+    barArea: {
+      height: 115,
+      justifyContent:
+        'flex-end',
+      alignItems: 'center',
+    },
 
-  bar: {
-    width: 21,
-  },
+    bar: {
+      width: 21,
+    },
 
-  normalBar: {
-    backgroundColor: '#BDEBB9',
-  },
+    normalBar: {
+      backgroundColor: '#BDEBB9',
+    },
 
-  selectedBar: {
-    backgroundColor: '#3F6B3A',
-  },
+    selectedBar: {
+      backgroundColor: '#3F6B3A',
+    },
 
-  chartValue: {
-    color: '#222222',
-    fontSize: 9,
-    marginBottom: 5,
-  },
+    chartValue: {
+      color: '#222222',
+      fontSize: 9,
+      marginBottom: 5,
+    },
 
-  chartMonth: {
-    color: '#222222',
-    fontSize: 10,
-    marginTop: 8,
-    marginBottom: -20,
-  },
+    chartMonth: {
+      color: '#222222',
+      fontSize: 10,
+      marginTop: 8,
+      marginBottom: -20,
+    },
 
-  totalCard: {
-    borderWidth: 1,
-    borderColor: '#555555',
-    borderRadius: 22,
-    overflow: 'hidden',
-    paddingTop: 12,
-  },
+    totalCard: {
+      borderWidth: 1,
+      borderColor: '#555555',
+      borderRadius: 22,
+      overflow: 'hidden',
+      paddingTop: 12,
+    },
 
-  totalLabel: {
-    color: '#222222',
-    fontSize: 18,
-    marginHorizontal: 20,
-  },
+    totalLabel: {
+      color: '#222222',
+      fontSize: 18,
+      marginHorizontal: 20,
+    },
 
-  totalValue: {
-    color: '#111111',
-    fontSize: 22,
-    marginHorizontal: 20,
-    marginTop: 2,
-    marginBottom: 12,
-  },
+    totalValue: {
+      color: '#111111',
+      fontSize: 22,
+      marginHorizontal: 20,
+      marginTop: 2,
+      marginBottom: 12,
+    },
 
-  totalSeparator: {
-    height: 1,
-    backgroundColor: '#DDDDDD',
-  },
+    totalSeparator: {
+      height: 1,
+      backgroundColor:
+        '#DDDDDD',
+    },
 
-  expenseRow: {
-    minHeight: 30,
-    paddingHorizontal: 35,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: '#DDDDDD',
-  },
+    expenseRow: {
+      minHeight: 30,
+      paddingHorizontal: 35,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent:
+        'space-between',
+      borderBottomWidth: 1,
+      borderBottomColor:
+        '#DDDDDD',
+    },
 
-  expenseDate: {
-    color: '#222222',
-    fontSize: 10,
-  },
+    expenseDate: {
+      color: '#222222',
+      fontSize: 10,
+    },
 
-  expenseValue: {
-    color: '#222222',
-    fontSize: 10,
-  },
+    expenseValue: {
+      color: '#222222',
+      fontSize: 10,
+    },
 
-  emptyContainer: {
-    height: 60,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+    emptyContainer: {
+      height: 60,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
 
-  emptyText: {
-    color: '#777777',
-    fontSize: 11,
-  },
+    emptyText: {
+      color: '#777777',
+      fontSize: 11,
+    },
 
-  bottomNavigation: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+    bottomNavigation: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      height: 82,
+      backgroundColor: '#BDEBB9',
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      flexDirection: 'row',
+      justifyContent:
+        'space-around',
+      alignItems: 'center',
+      paddingBottom: 5,
+    },
 
-    // Mesma altura do Dashboard
-    height: 82,
+    navigationItem: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: 90,
+    },
 
-    backgroundColor: '#BDEBB9',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
+    navigationIcon: {
+      width: 27,
+      height: 27,
+      borderRadius: 8,
+      backgroundColor: '#3F6B3A',
+      marginBottom: 5,
+    },
 
-    // Mesmo espaçamento do Dashboard
-    paddingBottom: 5,
-  },
+    navigationIconActive: {
+      borderWidth: 2,
+      borderColor: '#222222',
+    },
 
-  navigationItem: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    navigationText: {
+      color: '#222222',
+      fontSize: 9,
+    },
 
-    // Mesmo tamanho do Dashboard
-    width: 90,
-  },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor:
+        'rgba(0, 0, 0, 0.35)',
+      justifyContent: 'center',
+      paddingHorizontal: 30,
+    },
 
-  navigationIcon: {
-    // Mesmo tamanho do Dashboard
-    width: 27,
-    height: 27,
-    borderRadius: 8,
+    modalContent: {
+      maxHeight: '70%',
+      backgroundColor: '#FFFFFF',
+      borderRadius: 16,
+      padding: 18,
+    },
 
-    backgroundColor: '#3F6B3A',
-    marginBottom: 5,
-  },
+    modalTitle: {
+      color: '#3F6B3A',
+      fontSize: 16,
+      fontWeight: 'bold',
+      marginBottom: 12,
+      textAlign: 'center',
+    },
 
-  navigationIconActive: {
-    borderWidth: 2,
-    borderColor: '#222222',
-  },
+    monthList: {
+      maxHeight: 380,
+    },
 
-  navigationText: {
-    color: '#222222',
-    fontSize: 9,
-  },
+    monthOption: {
+      paddingVertical: 13,
+      borderBottomWidth: 1,
+      borderBottomColor:
+        '#EEEEEE',
+    },
 
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.35)',
-    justifyContent: 'center',
-    paddingHorizontal: 30,
-  },
-
-  modalContent: {
-    maxHeight: '70%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 18,
-  },
-
-  modalTitle: {
-    color: '#3F6B3A',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-
-  monthList: {
-    maxHeight: 380,
-  },
-
-  monthOption: {
-    paddingVertical: 13,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
-  },
-
-  monthOptionText: {
-    color: '#222222',
-    fontSize: 12,
-    textAlign: 'center',
-  },
-});
+    monthOptionText: {
+      color: '#222222',
+      fontSize: 12,
+      textAlign: 'center',
+    },
+  });
 
 export default RelatorioScreen;

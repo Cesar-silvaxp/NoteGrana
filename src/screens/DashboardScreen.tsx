@@ -15,6 +15,7 @@ import {
 interface DashboardScreenProps {
   onAbrirHistorico: () => void;
   onAbrirRelatorios: () => void;
+  onAbrirConfiguracoes: () => void;
 }
 
 interface Gasto {
@@ -32,44 +33,49 @@ const {GastoModule} = NativeModules;
 function DashboardScreen({
   onAbrirHistorico,
   onAbrirRelatorios,
+  onAbrirConfiguracoes,
 }: DashboardScreenProps) {
-  const [gastos, setGastos] = useState<Gasto[]>([]);
+  const [gastos, setGastos] =
+    useState<Gasto[]>([]);
+
   const [carregando, setCarregando] =
     useState(true);
 
-  const carregarGastos = useCallback(async () => {
-    try {
-      setCarregando(true);
+  const carregarGastos =
+    useCallback(async () => {
+      try {
+        setCarregando(true);
 
-      if (!GastoModule) {
+        if (!GastoModule) {
+          console.error(
+            'GastoModule não está disponível.',
+          );
+          return;
+        }
+
+        const resultado: Gasto[] =
+          await GastoModule.listarGastos();
+
+        const gastosAtivos = resultado
+          .filter(
+            gasto =>
+              gasto.status === 'ATIVO',
+          )
+          .sort(
+            (a, b) =>
+              b.dataHora - a.dataHora,
+          );
+
+        setGastos(gastosAtivos);
+      } catch (error) {
         console.error(
-          'GastoModule não está disponível.',
+          'Erro ao carregar gastos no Dashboard:',
+          error,
         );
-        return;
+      } finally {
+        setCarregando(false);
       }
-
-      const resultado: Gasto[] =
-        await GastoModule.listarGastos();
-
-      const gastosAtivos = resultado
-        .filter(
-          gasto => gasto.status === 'ATIVO',
-        )
-        .sort(
-          (a, b) =>
-            b.dataHora - a.dataHora,
-        );
-
-      setGastos(gastosAtivos);
-    } catch (error) {
-      console.error(
-        'Erro ao carregar gastos no Dashboard:',
-        error,
-      );
-    } finally {
-      setCarregando(false);
-    }
-  }, []);
+    }, []);
 
   useEffect(() => {
     carregarGastos();
@@ -124,7 +130,6 @@ function DashboardScreen({
 
   function formatarData(dataHora: number) {
     const data = new Date(dataHora);
-
     const hoje = new Date();
 
     const inicioHoje = new Date(
@@ -170,7 +175,6 @@ function DashboardScreen({
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        {/* Cabeçalho */}
         <View style={styles.header}>
           <Text style={styles.greeting}>
             Olá, Pedro
@@ -181,7 +185,6 @@ function DashboardScreen({
           </Text>
         </View>
 
-        {/* Total do mês */}
         <View style={styles.totalCard}>
           <Text style={styles.totalLabel}>
             Total do Mês
@@ -194,7 +197,6 @@ function DashboardScreen({
           </Text>
         </View>
 
-        {/* Últimos gastos */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>
             Últimos Gastos
@@ -215,15 +217,13 @@ function DashboardScreen({
         <View style={styles.expensesContainer}>
           {carregando ? (
             <View style={styles.messageRow}>
-              <Text
-                style={styles.messageText}>
+              <Text style={styles.messageText}>
                 Carregando gastos...
               </Text>
             </View>
           ) : ultimosGastos.length === 0 ? (
             <View style={styles.messageRow}>
-              <Text
-                style={styles.messageText}>
+              <Text style={styles.messageText}>
                 Nenhum gasto registrado
               </Text>
             </View>
@@ -278,7 +278,6 @@ function DashboardScreen({
         </View>
       </View>
 
-      {/* Menu inferior */}
       <View style={styles.bottomNavigation}>
         <View style={styles.navigationItem}>
           <View
@@ -288,8 +287,7 @@ function DashboardScreen({
             ]}
           />
 
-          <Text
-            style={styles.navigationText}>
+          <Text style={styles.navigationText}>
             Dashboard
           </Text>
         </View>
@@ -299,20 +297,20 @@ function DashboardScreen({
           onPress={onAbrirRelatorios}>
           <View style={styles.navigationIcon} />
 
-          <Text
-            style={styles.navigationText}>
+          <Text style={styles.navigationText}>
             Relatórios
           </Text>
         </Pressable>
 
-        <View style={styles.navigationItem}>
+        <Pressable
+          style={styles.navigationItem}
+          onPress={onAbrirConfiguracoes}>
           <View style={styles.navigationIcon} />
 
-          <Text
-            style={styles.navigationText}>
+          <Text style={styles.navigationText}>
             Configurações
           </Text>
-        </View>
+        </Pressable>
       </View>
     </SafeAreaView>
   );

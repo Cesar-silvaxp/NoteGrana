@@ -12,6 +12,7 @@ import DashboardScreen from './src/screens/DashboardScreen';
 import HistoricoScreen from './src/screens/HistoricoScreen';
 import DetalhesGastoScreen from './src/screens/DetalhesGastoScreen';
 import RelatorioScreen from './src/screens/RelatorioScreen';
+import ConfiguracoesScreen from './src/screens/ConfiguracoesScreen';
 import NotificationPermissionScreen from './src/screens/NotificationPermissionScreen';
 
 interface Gasto {
@@ -34,7 +35,8 @@ type Tela =
   | 'dashboard'
   | 'historico'
   | 'detalhes'
-  | 'relatorios';
+  | 'relatorios'
+  | 'configuracoes';
 
 function App() {
   const [tela, setTela] =
@@ -156,6 +158,26 @@ function App() {
         onAbrirDashboard={() =>
           setTela('dashboard')
         }
+        onAbrirConfiguracoes={() =>
+          setTela('configuracoes')
+        }
+      />
+    );
+  }
+
+  if (tela === 'configuracoes') {
+    return (
+      <ConfiguracoesScreen
+        onAbrirDashboard={() =>
+          setTela('dashboard')
+        }
+        onAbrirRelatorios={() =>
+          setTela('relatorios')
+        }
+        onSair={() => {
+          setGastoSelecionado(null);
+          setTela('login');
+        }}
       />
     );
   }
@@ -167,6 +189,9 @@ function App() {
       }
       onAbrirRelatorios={() =>
         setTela('relatorios')
+      }
+      onAbrirConfiguracoes={() =>
+        setTela('configuracoes')
       }
     />
   );
