@@ -12,6 +12,8 @@ import {
   View,
 } from 'react-native';
 
+import BottomNavigation from '../components/BottomNavigation';
+
 interface DashboardScreenProps {
   onAbrirHistorico: () => void;
   onAbrirRelatorios: () => void;
@@ -128,7 +130,9 @@ function DashboardScreen({
       );
   }
 
-  function formatarData(dataHora: number) {
+  function formatarData(
+    dataHora: number,
+  ) {
     const data = new Date(dataHora);
     const hoje = new Date();
 
@@ -214,7 +218,10 @@ function DashboardScreen({
           </Pressable>
         </View>
 
-        <View style={styles.expensesContainer}>
+        <View
+          style={
+            styles.expensesContainer
+          }>
           {carregando ? (
             <View style={styles.messageRow}>
               <Text style={styles.messageText}>
@@ -266,9 +273,7 @@ function DashboardScreen({
                     ultimosGastos.length -
                       1 && (
                     <View
-                      style={
-                        styles.separator
-                      }
+                      style={styles.separator}
                     />
                   )}
                 </React.Fragment>
@@ -278,40 +283,14 @@ function DashboardScreen({
         </View>
       </View>
 
-      <View style={styles.bottomNavigation}>
-        <View style={styles.navigationItem}>
-          <View
-            style={[
-              styles.navigationIcon,
-              styles.navigationIconActive,
-            ]}
-          />
-
-          <Text style={styles.navigationText}>
-            Dashboard
-          </Text>
-        </View>
-
-        <Pressable
-          style={styles.navigationItem}
-          onPress={onAbrirRelatorios}>
-          <View style={styles.navigationIcon} />
-
-          <Text style={styles.navigationText}>
-            Relatórios
-          </Text>
-        </Pressable>
-
-        <Pressable
-          style={styles.navigationItem}
-          onPress={onAbrirConfiguracoes}>
-          <View style={styles.navigationIcon} />
-
-          <Text style={styles.navigationText}>
-            Configurações
-          </Text>
-        </Pressable>
-      </View>
+      <BottomNavigation
+        active="dashboard"
+        onDashboard={() => {}}
+        onRelatorios={onAbrirRelatorios}
+        onConfiguracoes={
+          onAbrirConfiguracoes
+        }
+      />
     </SafeAreaView>
   );
 }
@@ -438,41 +417,6 @@ const styles = StyleSheet.create({
   messageText: {
     color: '#777777',
     fontSize: 11,
-  },
-
-  bottomNavigation: {
-    height: 82,
-    backgroundColor: '#BDEBB9',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    paddingBottom: 5,
-  },
-
-  navigationItem: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 90,
-  },
-
-  navigationIcon: {
-    width: 27,
-    height: 27,
-    borderRadius: 8,
-    backgroundColor: '#3F6B3A',
-    marginBottom: 5,
-  },
-
-  navigationIconActive: {
-    borderWidth: 2,
-    borderColor: '#222222',
-  },
-
-  navigationText: {
-    color: '#222222',
-    fontSize: 9,
   },
 });
 

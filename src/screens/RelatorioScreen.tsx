@@ -16,6 +16,8 @@ import {
   View,
 } from 'react-native';
 
+import BottomNavigation from '../components/BottomNavigation';
+
 interface Gasto {
   id: string;
   valor: number;
@@ -199,8 +201,7 @@ function RelatorioScreen({
           return (
             dataGasto.getFullYear() ===
               ano &&
-            dataGasto.getMonth() ===
-              mes
+            dataGasto.getMonth() === mes
           );
         })
         .reduce(
@@ -214,10 +215,8 @@ function RelatorioScreen({
         mes,
         total,
         selecionado:
-          ano ===
-            mesSelecionado.ano &&
-          mes ===
-            mesSelecionado.mes,
+          ano === mesSelecionado.ano &&
+          mes === mesSelecionado.mes,
       });
     }
 
@@ -296,9 +295,9 @@ function RelatorioScreen({
   }
 
   return (
-    <SafeAreaView
-      style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <ScrollView
+        style={styles.scroll}
         contentContainerStyle={
           styles.content
         }>
@@ -347,9 +346,7 @@ function RelatorioScreen({
             <View
               style={styles.chartCard}>
               <View
-                style={
-                  styles.chartArea
-                }>
+                style={styles.chartArea}>
                 {mesesGrafico.map(
                   item => {
                     const altura =
@@ -440,8 +437,7 @@ function RelatorioScreen({
                 }
               />
 
-              {gastosMes.length ===
-              0 ? (
+              {gastosMes.length === 0 ? (
                 <View
                   style={
                     styles.emptyContainer
@@ -487,72 +483,15 @@ function RelatorioScreen({
         )}
       </ScrollView>
 
-      {/* Menu inferior */}
-      <View
-        style={
-          styles.bottomNavigation
-        }>
-        <Pressable
-          style={
-            styles.navigationItem
-          }
-          onPress={onAbrirDashboard}>
-          <View
-            style={
-              styles.navigationIcon
-            }
-          />
+      <BottomNavigation
+        active="relatorios"
+        onDashboard={onAbrirDashboard}
+        onRelatorios={() => {}}
+        onConfiguracoes={
+          onAbrirConfiguracoes
+        }
+      />
 
-          <Text
-            style={
-              styles.navigationText
-            }>
-            Dashboard
-          </Text>
-        </Pressable>
-
-        <View
-          style={
-            styles.navigationItem
-          }>
-          <View
-            style={[
-              styles.navigationIcon,
-              styles.navigationIconActive,
-            ]}
-          />
-
-          <Text
-            style={
-              styles.navigationText
-            }>
-            Relatórios
-          </Text>
-        </View>
-
-        <Pressable
-          style={
-            styles.navigationItem
-          }
-          onPress={
-            onAbrirConfiguracoes
-          }>
-          <View
-            style={
-              styles.navigationIcon
-            }
-          />
-
-          <Text
-            style={
-              styles.navigationText
-            }>
-            Configurações
-          </Text>
-        </Pressable>
-      </View>
-
-      {/* Seleção de mês */}
       <Modal
         visible={modalAberto}
         transparent
@@ -611,269 +550,224 @@ function RelatorioScreen({
   );
 }
 
-const styles =
-  StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: '#FFFFFF',
-    },
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
 
-    content: {
-      paddingHorizontal: 18,
-      paddingTop: 30,
-      paddingBottom: 100,
-    },
+  scroll: {
+    flex: 1,
+  },
 
-    title: {
-      color: '#3F6B3A',
-      fontSize: 18,
-      fontWeight: 'bold',
-      textAlign: 'center',
-      marginBottom: 28,
-    },
+  content: {
+    paddingHorizontal: 18,
+    paddingTop: 30,
+    paddingBottom: 30,
+  },
 
-    monthSelector: {
-      height: 42,
-      backgroundColor: '#BDEBB9',
-      borderRadius: 12,
-      paddingHorizontal: 18,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent:
-        'space-between',
-      marginBottom: 42,
-    },
+  title: {
+    color: '#3F6B3A',
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 28,
+  },
 
-    monthSelectorText: {
-      color: '#222222',
-      fontSize: 12,
-    },
+  monthSelector: {
+    height: 42,
+    backgroundColor: '#BDEBB9',
+    borderRadius: 12,
+    paddingHorizontal: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 42,
+  },
 
-    arrow: {
-      color: '#3F6B3A',
-      fontSize: 11,
-    },
+  monthSelectorText: {
+    color: '#222222',
+    fontSize: 12,
+  },
 
-    sectionTitle: {
-      width: '84%',
-      alignSelf: 'center',
-      backgroundColor: '#F3F3F3',
-      paddingVertical: 9,
-      borderRadius: 2,
-      marginBottom: 52,
-    },
+  arrow: {
+    color: '#3F6B3A',
+    fontSize: 11,
+  },
 
-    sectionTitleText: {
-      color: '#222222',
-      fontSize: 17,
-      textAlign: 'center',
-    },
+  sectionTitle: {
+    width: '84%',
+    alignSelf: 'center',
+    backgroundColor: '#F3F3F3',
+    paddingVertical: 9,
+    borderRadius: 2,
+    marginBottom: 52,
+  },
 
-    loading: {
-      height: 250,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
+  sectionTitleText: {
+    color: '#222222',
+    fontSize: 17,
+    textAlign: 'center',
+  },
 
-    chartCard: {
-      height: 205,
-      borderWidth: 1,
-      borderColor: '#555555',
-      borderRadius: 25,
-      paddingHorizontal: 18,
-      paddingTop: 25,
-      paddingBottom: 15,
-      marginBottom: 34,
-    },
+  loading: {
+    height: 250,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 
-    chartArea: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'flex-end',
-      justifyContent:
-        'space-around',
-      borderBottomWidth: 1,
-      borderBottomColor:
-        '#CCCCCC',
-    },
+  chartCard: {
+    height: 205,
+    borderWidth: 1,
+    borderColor: '#555555',
+    borderRadius: 25,
+    paddingHorizontal: 18,
+    paddingTop: 25,
+    paddingBottom: 15,
+    marginBottom: 34,
+  },
 
-    chartColumn: {
-      flex: 1,
-      alignItems: 'center',
-    },
+  chartArea: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-around',
+    borderBottomWidth: 1,
+    borderBottomColor: '#CCCCCC',
+  },
 
-    barArea: {
-      height: 115,
-      justifyContent:
-        'flex-end',
-      alignItems: 'center',
-    },
+  chartColumn: {
+    flex: 1,
+    alignItems: 'center',
+  },
 
-    bar: {
-      width: 21,
-    },
+  barArea: {
+    height: 115,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+  },
 
-    normalBar: {
-      backgroundColor: '#BDEBB9',
-    },
+  bar: {
+    width: 21,
+  },
 
-    selectedBar: {
-      backgroundColor: '#3F6B3A',
-    },
+  normalBar: {
+    backgroundColor: '#BDEBB9',
+  },
 
-    chartValue: {
-      color: '#222222',
-      fontSize: 9,
-      marginBottom: 5,
-    },
+  selectedBar: {
+    backgroundColor: '#3F6B3A',
+  },
 
-    chartMonth: {
-      color: '#222222',
-      fontSize: 10,
-      marginTop: 8,
-      marginBottom: -20,
-    },
+  chartValue: {
+    color: '#222222',
+    fontSize: 9,
+    marginBottom: 5,
+  },
 
-    totalCard: {
-      borderWidth: 1,
-      borderColor: '#555555',
-      borderRadius: 22,
-      overflow: 'hidden',
-      paddingTop: 12,
-    },
+  chartMonth: {
+    color: '#222222',
+    fontSize: 10,
+    marginTop: 8,
+    marginBottom: -20,
+  },
 
-    totalLabel: {
-      color: '#222222',
-      fontSize: 18,
-      marginHorizontal: 20,
-    },
+  totalCard: {
+    borderWidth: 1,
+    borderColor: '#555555',
+    borderRadius: 22,
+    overflow: 'hidden',
+    paddingTop: 12,
+  },
 
-    totalValue: {
-      color: '#111111',
-      fontSize: 22,
-      marginHorizontal: 20,
-      marginTop: 2,
-      marginBottom: 12,
-    },
+  totalLabel: {
+    color: '#222222',
+    fontSize: 18,
+    marginHorizontal: 20,
+  },
 
-    totalSeparator: {
-      height: 1,
-      backgroundColor:
-        '#DDDDDD',
-    },
+  totalValue: {
+    color: '#111111',
+    fontSize: 22,
+    marginHorizontal: 20,
+    marginTop: 2,
+    marginBottom: 12,
+  },
 
-    expenseRow: {
-      minHeight: 30,
-      paddingHorizontal: 35,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent:
-        'space-between',
-      borderBottomWidth: 1,
-      borderBottomColor:
-        '#DDDDDD',
-    },
+  totalSeparator: {
+    height: 1,
+    backgroundColor: '#DDDDDD',
+  },
 
-    expenseDate: {
-      color: '#222222',
-      fontSize: 10,
-    },
+  expenseRow: {
+    minHeight: 30,
+    paddingHorizontal: 35,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: '#DDDDDD',
+  },
 
-    expenseValue: {
-      color: '#222222',
-      fontSize: 10,
-    },
+  expenseDate: {
+    color: '#222222',
+    fontSize: 10,
+  },
 
-    emptyContainer: {
-      height: 60,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
+  expenseValue: {
+    color: '#222222',
+    fontSize: 10,
+  },
 
-    emptyText: {
-      color: '#777777',
-      fontSize: 11,
-    },
+  emptyContainer: {
+    height: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 
-    bottomNavigation: {
-      position: 'absolute',
-      bottom: 0,
-      left: 0,
-      right: 0,
-      height: 82,
-      backgroundColor: '#BDEBB9',
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
-      flexDirection: 'row',
-      justifyContent:
-        'space-around',
-      alignItems: 'center',
-      paddingBottom: 5,
-    },
+  emptyText: {
+    color: '#777777',
+    fontSize: 11,
+  },
 
-    navigationItem: {
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: 90,
-    },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor:
+      'rgba(0, 0, 0, 0.35)',
+    justifyContent: 'center',
+    paddingHorizontal: 30,
+  },
 
-    navigationIcon: {
-      width: 27,
-      height: 27,
-      borderRadius: 8,
-      backgroundColor: '#3F6B3A',
-      marginBottom: 5,
-    },
+  modalContent: {
+    maxHeight: '70%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 18,
+  },
 
-    navigationIconActive: {
-      borderWidth: 2,
-      borderColor: '#222222',
-    },
+  modalTitle: {
+    color: '#3F6B3A',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
 
-    navigationText: {
-      color: '#222222',
-      fontSize: 9,
-    },
+  monthList: {
+    maxHeight: 380,
+  },
 
-    modalOverlay: {
-      flex: 1,
-      backgroundColor:
-        'rgba(0, 0, 0, 0.35)',
-      justifyContent: 'center',
-      paddingHorizontal: 30,
-    },
+  monthOption: {
+    paddingVertical: 13,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEEEEE',
+  },
 
-    modalContent: {
-      maxHeight: '70%',
-      backgroundColor: '#FFFFFF',
-      borderRadius: 16,
-      padding: 18,
-    },
-
-    modalTitle: {
-      color: '#3F6B3A',
-      fontSize: 16,
-      fontWeight: 'bold',
-      marginBottom: 12,
-      textAlign: 'center',
-    },
-
-    monthList: {
-      maxHeight: 380,
-    },
-
-    monthOption: {
-      paddingVertical: 13,
-      borderBottomWidth: 1,
-      borderBottomColor:
-        '#EEEEEE',
-    },
-
-    monthOptionText: {
-      color: '#222222',
-      fontSize: 12,
-      textAlign: 'center',
-    },
-  });
+  monthOptionText: {
+    color: '#222222',
+    fontSize: 12,
+    textAlign: 'center',
+  },
+});
 
 export default RelatorioScreen;

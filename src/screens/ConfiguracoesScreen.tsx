@@ -13,6 +13,8 @@ import {
   View,
 } from 'react-native';
 
+import BottomNavigation from '../components/BottomNavigation';
+
 interface ConfiguracoesScreenProps {
   onAbrirDashboard: () => void;
   onAbrirRelatorios: () => void;
@@ -218,47 +220,12 @@ function ConfiguracoesScreen({
         </Text>
       </View>
 
-      <View style={styles.bottomNavigation}>
-        <Pressable
-          style={styles.navigationItem}
-          onPress={onAbrirDashboard}>
-          <View
-            style={styles.navigationIcon}
-          />
-
-          <Text
-            style={styles.navigationText}>
-            Dashboard
-          </Text>
-        </Pressable>
-
-        <Pressable
-          style={styles.navigationItem}
-          onPress={onAbrirRelatorios}>
-          <View
-            style={styles.navigationIcon}
-          />
-
-          <Text
-            style={styles.navigationText}>
-            Relatórios
-          </Text>
-        </Pressable>
-
-        <View style={styles.navigationItem}>
-          <View
-            style={[
-              styles.navigationIcon,
-              styles.navigationIconActive,
-            ]}
-          />
-
-          <Text
-            style={styles.navigationText}>
-            Configurações
-          </Text>
-        </View>
-      </View>
+      <BottomNavigation
+        active="configuracoes"
+        onDashboard={onAbrirDashboard}
+        onRelatorios={onAbrirRelatorios}
+        onConfiguracoes={() => {}}
+      />
     </SafeAreaView>
   );
 }
@@ -344,8 +311,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent:
-      'space-between',
+    justifyContent: 'space-between',
   },
 
   actionText: {
@@ -401,42 +367,6 @@ const styles = StyleSheet.create({
     fontSize: 9,
     textAlign: 'center',
     marginTop: 2,
-  },
-
-  bottomNavigation: {
-    height: 82,
-    backgroundColor: '#BDEBB9',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    flexDirection: 'row',
-    justifyContent:
-      'space-around',
-    alignItems: 'center',
-    paddingBottom: 5,
-  },
-
-  navigationItem: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 90,
-  },
-
-  navigationIcon: {
-    width: 27,
-    height: 27,
-    borderRadius: 8,
-    backgroundColor: '#3F6B3A',
-    marginBottom: 5,
-  },
-
-  navigationIconActive: {
-    borderWidth: 2,
-    borderColor: '#222222',
-  },
-
-  navigationText: {
-    color: '#222222',
-    fontSize: 9,
   },
 });
 
