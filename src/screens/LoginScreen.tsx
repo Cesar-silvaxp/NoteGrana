@@ -10,12 +10,17 @@ import {
 
 type LoginScreenProps = {
   onLogin: () => void;
+  onCriarConta: () => void;
 };
 
-function LoginScreen({onLogin}: LoginScreenProps) {
+function LoginScreen({
+  onLogin,
+  onCriarConta,
+}: LoginScreenProps) {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
-  const [mostrarSenha, setMostrarSenha] = useState(false);
+  const [mostrarSenha, setMostrarSenha] =
+    useState(false);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -24,10 +29,13 @@ function LoginScreen({onLogin}: LoginScreenProps) {
           <Text style={styles.logoIcon}>▰</Text>
         </View>
 
-        <Text style={styles.title}>NoteGrana</Text>
+        <Text style={styles.title}>
+          NoteGrana
+        </Text>
 
         <Text style={styles.subtitle}>
-          Controle seus gastos de{'\n'}forma inteligente
+          Controle seus gastos de{'\n'}
+          forma inteligente
         </Text>
 
         <TextInput
@@ -51,7 +59,9 @@ function LoginScreen({onLogin}: LoginScreenProps) {
           />
 
           <TouchableOpacity
-            onPress={() => setMostrarSenha(!mostrarSenha)}>
+            onPress={() =>
+              setMostrarSenha(!mostrarSenha)
+            }>
             <Text style={styles.eye}>
               {mostrarSenha ? '●' : '◉'}
             </Text>
@@ -61,7 +71,9 @@ function LoginScreen({onLogin}: LoginScreenProps) {
         <TouchableOpacity
           style={styles.loginButton}
           onPress={onLogin}>
-          <Text style={styles.loginButtonText}>Entrar</Text>
+          <Text style={styles.loginButtonText}>
+            Entrar
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity>
@@ -71,10 +83,15 @@ function LoginScreen({onLogin}: LoginScreenProps) {
         </TouchableOpacity>
 
         <View style={styles.createAccountContainer}>
-          <Text style={styles.newHere}>Novo por aqui? </Text>
+          <Text style={styles.newHere}>
+            Novo por aqui?{' '}
+          </Text>
 
-          <TouchableOpacity>
-            <Text style={styles.createAccount}>Criar conta</Text>
+          <TouchableOpacity
+            onPress={onCriarConta}>
+            <Text style={styles.createAccount}>
+              Criar conta
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
