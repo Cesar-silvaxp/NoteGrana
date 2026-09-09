@@ -11,11 +11,13 @@ import {
 type LoginScreenProps = {
   onLogin: () => void;
   onCriarConta: () => void;
+  onRecuperarSenha: () => void;
 };
 
 function LoginScreen({
   onLogin,
   onCriarConta,
+  onRecuperarSenha,
 }: LoginScreenProps) {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -76,7 +78,8 @@ function LoginScreen({
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity>
+        <TouchableOpacity
+          onPress={onRecuperarSenha}>
           <Text style={styles.forgotPassword}>
             Esqueci minha senha
           </Text>

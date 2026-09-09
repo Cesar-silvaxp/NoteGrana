@@ -1,8 +1,13 @@
-import React, {useCallback, useState} from 'react';
+import React, {
+  useCallback,
+  useState,
+} from 'react';
 
 import LoginScreen from './src/screens/LoginScreen';
 import CadastroScreen from './src/screens/CadastroScreen';
 import CadastroConfirmadoScreen from './src/screens/CadastroConfirmadoScreen';
+import RecuperarSenhaScreen from './src/screens/RecuperarSenhaScreen';
+import RecuperacaoConfirmadaScreen from './src/screens/RecuperacaoConfirmadaScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
 import HistoricoScreen from './src/screens/HistoricoScreen';
 import DetalhesGastoScreen from './src/screens/DetalhesGastoScreen';
@@ -23,6 +28,8 @@ type Tela =
   | 'login'
   | 'cadastro'
   | 'cadastroConfirmado'
+  | 'recuperarSenha'
+  | 'recuperacaoConfirmada'
   | 'permissao'
   | 'dashboard'
   | 'historico'
@@ -52,6 +59,9 @@ function App() {
         onCriarConta={() =>
           setTela('cadastro')
         }
+        onRecuperarSenha={() =>
+          setTela('recuperarSenha')
+        }
       />
     );
   }
@@ -72,6 +82,29 @@ function App() {
   if (tela === 'cadastroConfirmado') {
     return (
       <CadastroConfirmadoScreen
+        onVoltarLogin={() =>
+          setTela('login')
+        }
+      />
+    );
+  }
+
+  if (tela === 'recuperarSenha') {
+    return (
+      <RecuperarSenhaScreen
+        onVoltar={() =>
+          setTela('login')
+        }
+        onEnviar={() =>
+          setTela('recuperacaoConfirmada')
+        }
+      />
+    );
+  }
+
+  if (tela === 'recuperacaoConfirmada') {
+    return (
+      <RecuperacaoConfirmadaScreen
         onVoltarLogin={() =>
           setTela('login')
         }
