@@ -16,14 +16,17 @@ import {
 interface ConfiguracoesScreenProps {
   onAbrirDashboard: () => void;
   onAbrirRelatorios: () => void;
+  onAlterarSenha: () => void;
   onSair: () => void;
 }
 
-const {NotificationAccessModule} = NativeModules;
+const {NotificationAccessModule} =
+  NativeModules;
 
 function ConfiguracoesScreen({
   onAbrirDashboard,
   onAbrirRelatorios,
+  onAlterarSenha,
   onSair,
 }: ConfiguracoesScreenProps) {
   const [
@@ -40,9 +43,12 @@ function ConfiguracoesScreen({
         }
 
         const habilitado: boolean =
-          await NotificationAccessModule.verificarAcesso();
+          await NotificationAccessModule
+            .verificarAcesso();
 
-        setAcessoNotificacoes(habilitado);
+        setAcessoNotificacoes(
+          habilitado,
+        );
       } catch (error) {
         console.error(
           'Erro ao verificar notificações:',
@@ -107,7 +113,10 @@ function ConfiguracoesScreen({
                 Acesso às notificações
               </Text>
 
-              <Text style={styles.rowDescription}>
+              <Text
+                style={
+                  styles.rowDescription
+                }>
                 Necessário para identificar
                 seus gastos automaticamente.
               </Text>
@@ -116,16 +125,19 @@ function ConfiguracoesScreen({
             <View
               style={[
                 styles.statusBadge,
-                acessoNotificacoes === false &&
+                acessoNotificacoes ===
+                  false &&
                   styles.statusBadgeDisabled,
               ]}>
               <Text
                 style={[
                   styles.statusText,
-                  acessoNotificacoes === false &&
+                  acessoNotificacoes ===
+                    false &&
                     styles.statusTextDisabled,
                 ]}>
-                {acessoNotificacoes === null
+                {acessoNotificacoes ===
+                null
                   ? '...'
                   : acessoNotificacoes
                     ? 'Ativado'
@@ -141,7 +153,9 @@ function ConfiguracoesScreen({
               styles.actionRow,
               pressed && styles.pressed,
             ]}
-            onPress={gerenciarNotificacoes}>
+            onPress={
+              gerenciarNotificacoes
+            }>
             <Text style={styles.actionText}>
               Gerenciar acesso
             </Text>
@@ -157,23 +171,29 @@ function ConfiguracoesScreen({
         </Text>
 
         <View style={styles.card}>
-          <View style={styles.row}>
+          <Pressable
+            style={({pressed}) => [
+              styles.securityRow,
+              pressed && styles.pressed,
+            ]}
+            onPress={onAlterarSenha}>
             <View style={styles.rowContent}>
               <Text style={styles.rowTitle}>
                 Alterar senha
               </Text>
 
-              <Text style={styles.rowDescription}>
+              <Text
+                style={
+                  styles.rowDescription
+                }>
                 Atualize a senha da sua conta.
               </Text>
             </View>
 
-            <View style={styles.soonBadge}>
-              <Text style={styles.soonText}>
-                Em breve
-              </Text>
-            </View>
-          </View>
+            <Text style={styles.arrow}>
+              ›
+            </Text>
+          </Pressable>
         </View>
 
         <Text style={styles.sectionLabel}>
@@ -202,8 +222,12 @@ function ConfiguracoesScreen({
         <Pressable
           style={styles.navigationItem}
           onPress={onAbrirDashboard}>
-          <View style={styles.navigationIcon} />
-          <Text style={styles.navigationText}>
+          <View
+            style={styles.navigationIcon}
+          />
+
+          <Text
+            style={styles.navigationText}>
             Dashboard
           </Text>
         </Pressable>
@@ -211,8 +235,12 @@ function ConfiguracoesScreen({
         <Pressable
           style={styles.navigationItem}
           onPress={onAbrirRelatorios}>
-          <View style={styles.navigationIcon} />
-          <Text style={styles.navigationText}>
+          <View
+            style={styles.navigationIcon}
+          />
+
+          <Text
+            style={styles.navigationText}>
             Relatórios
           </Text>
         </Pressable>
@@ -225,7 +253,8 @@ function ConfiguracoesScreen({
             ]}
           />
 
-          <Text style={styles.navigationText}>
+          <Text
+            style={styles.navigationText}>
             Configurações
           </Text>
         </View>
@@ -279,6 +308,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
+  securityRow: {
+    minHeight: 74,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
   rowContent: {
     flex: 1,
     paddingRight: 12,
@@ -307,7 +344,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent:
+      'space-between',
   },
 
   actionText: {
@@ -342,18 +380,6 @@ const styles = StyleSheet.create({
     color: '#777777',
   },
 
-  soonBadge: {
-    backgroundColor: '#F3F3F3',
-    borderRadius: 12,
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-  },
-
-  soonText: {
-    color: '#777777',
-    fontSize: 9,
-  },
-
   logoutRow: {
     height: 52,
     justifyContent: 'center',
@@ -383,7 +409,8 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent:
+      'space-around',
     alignItems: 'center',
     paddingBottom: 5,
   },

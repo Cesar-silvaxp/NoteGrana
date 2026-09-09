@@ -13,6 +13,8 @@ import HistoricoScreen from './src/screens/HistoricoScreen';
 import DetalhesGastoScreen from './src/screens/DetalhesGastoScreen';
 import RelatorioScreen from './src/screens/RelatorioScreen';
 import ConfiguracoesScreen from './src/screens/ConfiguracoesScreen';
+import AlterarSenhaScreen from './src/screens/AlterarSenhaScreen';
+import SenhaAlteradaScreen from './src/screens/SenhaAlteradaScreen';
 import NotificationPermissionScreen from './src/screens/NotificationPermissionScreen';
 
 interface Gasto {
@@ -36,7 +38,9 @@ type Tela =
   | 'historico'
   | 'detalhes'
   | 'relatorios'
-  | 'configuracoes';
+  | 'configuracoes'
+  | 'alterarSenha'
+  | 'senhaAlterada';
 
 function App() {
   const [tela, setTela] =
@@ -75,13 +79,18 @@ function App() {
           setTela('login')
         }
         onCadastrar={() =>
-          setTela('cadastroConfirmado')
+          setTela(
+            'cadastroConfirmado',
+          )
         }
       />
     );
   }
 
-  if (tela === 'cadastroConfirmado') {
+  if (
+    tela ===
+    'cadastroConfirmado'
+  ) {
     return (
       <CadastroConfirmadoScreen
         onVoltarLogin={() =>
@@ -98,13 +107,18 @@ function App() {
           setTela('login')
         }
         onEnviar={() =>
-          setTela('recuperacaoConfirmada')
+          setTela(
+            'recuperacaoConfirmada',
+          )
         }
       />
     );
   }
 
-  if (tela === 'recuperacaoConfirmada') {
+  if (
+    tela ===
+    'recuperacaoConfirmada'
+  ) {
     return (
       <RecuperacaoConfirmadaScreen
         onVoltarLogin={() =>
@@ -165,6 +179,29 @@ function App() {
     );
   }
 
+  if (tela === 'alterarSenha') {
+    return (
+      <AlterarSenhaScreen
+        onVoltar={() =>
+          setTela('configuracoes')
+        }
+        onSalvar={() =>
+          setTela('senhaAlterada')
+        }
+      />
+    );
+  }
+
+  if (tela === 'senhaAlterada') {
+    return (
+      <SenhaAlteradaScreen
+        onContinuar={() =>
+          setTela('configuracoes')
+        }
+      />
+    );
+  }
+
   if (tela === 'configuracoes') {
     return (
       <ConfiguracoesScreen
@@ -173,6 +210,9 @@ function App() {
         }
         onAbrirRelatorios={() =>
           setTela('relatorios')
+        }
+        onAlterarSenha={() =>
+          setTela('alterarSenha')
         }
         onSair={() => {
           setGastoSelecionado(null);
