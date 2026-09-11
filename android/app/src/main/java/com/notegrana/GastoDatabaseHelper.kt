@@ -35,7 +35,9 @@ class GastoDatabaseHelper(
         oldVersion: Int,
         newVersion: Int
     ) {
-        db.execSQL("DROP TABLE IF EXISTS $TABLE_GASTOS")
+        db.execSQL(
+            "DROP TABLE IF EXISTS $TABLE_GASTOS"
+        )
         onCreate(db)
     }
 
@@ -47,7 +49,10 @@ class GastoDatabaseHelper(
             put("valor", gasto.valor)
             put("titulo", gasto.titulo)
             put("descricao", gasto.descricao)
-            put("pacote_origem", gasto.pacoteOrigem)
+            put(
+                "pacote_origem",
+                gasto.pacoteOrigem
+            )
             put("data_hora", gasto.dataHora)
             put("status", gasto.status)
         }
@@ -81,25 +86,40 @@ class GastoDatabaseHelper(
             while (it.moveToNext()) {
                 val gasto = Gasto(
                     id = it.getString(
-                        it.getColumnIndexOrThrow("id")
+                        it.getColumnIndexOrThrow(
+                            "id"
+                        )
                     ),
                     valor = it.getDouble(
-                        it.getColumnIndexOrThrow("valor")
+                        it.getColumnIndexOrThrow(
+                            "valor"
+                        )
                     ),
                     titulo = it.getString(
-                        it.getColumnIndexOrThrow("titulo")
+                        it.getColumnIndexOrThrow(
+                            "titulo"
+                        )
                     ),
                     descricao = it.getString(
-                        it.getColumnIndexOrThrow("descricao")
+                        it.getColumnIndexOrThrow(
+                            "descricao"
+                        )
                     ),
-                    pacoteOrigem = it.getString(
-                        it.getColumnIndexOrThrow("pacote_origem")
-                    ),
+                    pacoteOrigem =
+                        it.getString(
+                            it.getColumnIndexOrThrow(
+                                "pacote_origem"
+                            )
+                        ),
                     dataHora = it.getLong(
-                        it.getColumnIndexOrThrow("data_hora")
+                        it.getColumnIndexOrThrow(
+                            "data_hora"
+                        )
                     ),
                     status = it.getString(
-                        it.getColumnIndexOrThrow("status")
+                        it.getColumnIndexOrThrow(
+                            "status"
+                        )
                     )
                 )
 
@@ -110,6 +130,28 @@ class GastoDatabaseHelper(
         db.close()
 
         return gastos
+    }
+
+    fun atualizarStatusGasto(
+        id: String,
+        status: String
+    ): Boolean {
+        val db = writableDatabase
+
+        val values = ContentValues().apply {
+            put("status", status)
+        }
+
+        val linhasAtualizadas = db.update(
+            TABLE_GASTOS,
+            values,
+            "id = ?",
+            arrayOf(id)
+        )
+
+        db.close()
+
+        return linhasAtualizadas > 0
     }
 
     fun contarGastos(): Int {
@@ -134,7 +176,9 @@ class GastoDatabaseHelper(
     }
 
     companion object {
-        private const val DATABASE_NAME = "notegrana.db"
+        private const val DATABASE_NAME =
+            "notegrana.db"
+
         private const val DATABASE_VERSION = 1
 
         const val TABLE_GASTOS = "gastos"

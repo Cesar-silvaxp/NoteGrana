@@ -151,7 +151,8 @@ function HistoricoScreen({
           <Pressable
             style={styles.retryButton}
             onPress={carregarGastos}>
-            <Text style={styles.retryButtonText}>
+            <Text
+              style={styles.retryButtonText}>
               Tentar novamente
             </Text>
           </Pressable>
@@ -179,66 +180,87 @@ function HistoricoScreen({
               : 'gastos registrados'}
           </Text>
 
-          {gastos.map(gasto => (
-            <Pressable
-              key={gasto.id}
-              style={({pressed}) => [
-                styles.expenseCard,
-                pressed &&
-                  styles.expenseCardPressed,
-              ]}
-              onPress={() =>
-                onSelecionarGasto(gasto)
-              }>
-              <View
-                style={styles.expenseHeader}>
-                <Text
-                  style={styles.expenseTitle}>
-                  {gasto.titulo.trim() ||
-                    'Gasto registrado'}
-                </Text>
+          {gastos.map(gasto => {
+            const gastoIgnorado =
+              gasto.status === 'IGNORADO';
 
-                <Text
-                  style={styles.expenseValue}>
-                  {formatarValor(
-                    gasto.valor,
-                  )}
-                </Text>
-              </View>
-
-              <Text
-                style={
-                  styles.expenseDescription
+            return (
+              <Pressable
+                key={gasto.id}
+                style={({pressed}) => [
+                  styles.expenseCard,
+                  gastoIgnorado &&
+                    styles.expenseCardIgnored,
+                  pressed &&
+                    styles.expenseCardPressed,
+                ]}
+                onPress={() =>
+                  onSelecionarGasto(gasto)
                 }>
-                {gasto.descricao}
-              </Text>
+                <View
+                  style={styles.expenseHeader}>
+                  <Text
+                    style={[
+                      styles.expenseTitle,
+                      gastoIgnorado &&
+                        styles.expenseTitleIgnored,
+                    ]}>
+                    {gasto.titulo.trim() ||
+                      'Gasto registrado'}
+                  </Text>
 
-              <View
-                style={styles.expenseFooter}>
+                  <Text
+                    style={[
+                      styles.expenseValue,
+                      gastoIgnorado &&
+                        styles.expenseValueIgnored,
+                    ]}>
+                    {formatarValor(
+                      gasto.valor,
+                    )}
+                  </Text>
+                </View>
+
                 <Text
-                  style={styles.expenseDate}>
-                  {formatarData(
-                    gasto.dataHora,
-                  )}{' '}
-                  às{' '}
-                  {formatarHora(
-                    gasto.dataHora,
-                  )}
+                  style={[
+                    styles.expenseDescription,
+                    gastoIgnorado &&
+                      styles.expenseDescriptionIgnored,
+                  ]}>
+                  {gasto.descricao}
                 </Text>
 
-                <Text
-                  style={
-                    styles.expenseStatus
-                  }>
-                  {gasto.status}
-                </Text>
-              </View>
+                <View
+                  style={styles.expenseFooter}>
+                  <Text
+                    style={styles.expenseDate}>
+                    {formatarData(
+                      gasto.dataHora,
+                    )}{' '}
+                    às{' '}
+                    {formatarHora(
+                      gasto.dataHora,
+                    )}
+                  </Text>
 
-              <Text style={styles.detailsHint}>
-                Toque para ver detalhes
-              </Text>
-            </Pressable>
-          ))}
+                  <Text
+                    style={[
+                      styles.expenseStatus,
+                      gastoIgnorado
+                        ? styles.expenseStatusIgnored
+                        : styles.expenseStatusActive,
+                    ]}>
+                    {gasto.status}
+                  </Text>
+                </View>
+
+                <Text
+                  style={styles.detailsHint}>
+                  Toque para ver detalhes
+                </Text>
+              </Pressable>
+            );
+          })}
         </ScrollView>
       )}
     </SafeAreaView>
@@ -350,6 +372,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
 
+  expenseCardIgnored: {
+    backgroundColor: '#F8F8F8',
+    borderColor: '#E5E5E5',
+  },
+
   expenseCardPressed: {
     opacity: 0.65,
   },
@@ -368,10 +395,18 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
 
+  expenseTitleIgnored: {
+    color: '#777777',
+  },
+
   expenseValue: {
     color: '#222222',
     fontSize: 14,
     fontWeight: 'bold',
+  },
+
+  expenseValueIgnored: {
+    color: '#777777',
   },
 
   expenseDescription: {
@@ -379,6 +414,10 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 8,
     lineHeight: 16,
+  },
+
+  expenseDescriptionIgnored: {
+    color: '#999999',
   },
 
   expenseFooter: {
@@ -394,13 +433,21 @@ const styles = StyleSheet.create({
   },
 
   expenseStatus: {
-    color: '#3F6B3A',
-    backgroundColor: '#BDEBB9',
     borderRadius: 10,
     paddingHorizontal: 8,
     paddingVertical: 3,
     fontSize: 9,
     fontWeight: 'bold',
+  },
+
+  expenseStatusActive: {
+    color: '#3F6B3A',
+    backgroundColor: '#BDEBB9',
+  },
+
+  expenseStatusIgnored: {
+    color: '#777777',
+    backgroundColor: '#E5E5E5',
   },
 
   detailsHint: {

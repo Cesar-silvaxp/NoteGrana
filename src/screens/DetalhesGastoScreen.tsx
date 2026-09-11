@@ -1,5 +1,7 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {
+  Alert,
+  NativeModules,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -23,10 +25,18 @@ interface DetalhesGastoScreenProps {
   onVoltar: () => void;
 }
 
+const {GastoModule} = NativeModules;
+
 function DetalhesGastoScreen({
   gasto,
   onVoltar,
 }: DetalhesGastoScreenProps) {
+  const [status, setStatus] =
+    useState(gasto.status);
+
+  const [alterandoStatus, setAlterandoStatus] =
+    useState(false);
+
   function formatarValor(valor: number) {
     return valor.toLocaleString('pt-BR', {
       style: 'currency',
@@ -34,7 +44,9 @@ function DetalhesGastoScreen({
     });
   }
 
-  function formatarDataHora(dataHora: number) {
+  function formatarDataHora(
+    dataHora: number,
+  ) {
     const data = new Date(dataHora);
 
     return data.toLocaleString('pt-BR', {
@@ -45,6 +57,93 @@ function DetalhesGastoScreen({
       minute: '2-digit',
     });
   }
+
+  async function atualizarStatus(
+    novoStatus: 'ATIVO' | 'IGNORADO',
+  ) {
+    try {
+      setAlterandoStatus(true);
+
+      if (!GastoModule) {
+        Alert.alert(
+          'Erro',
+          'O módulo de gastos não está disponível.',
+        );
+        return;
+      }
+
+      await GastoModule.atualizarStatusGasto(
+        gasto.id,
+        novoStatus,
+      );
+
+      setStatus(novoStatus);
+
+      if (novoStatus === 'IGNORADO') {
+        Alert.alert(
+          'Gasto ignorado',
+          'Este gasto não será mais considerado nos totais do Dashboard e dos relatórios.',
+        );
+      } else {
+        Alert.alert(
+          'Gasto reativado',
+          'Este gasto voltará a ser considerado nos totais do NoteGrana.',
+        );
+      }
+    } catch (error) {
+      console.error(
+        'Erro ao atualizar status do gasto:',
+        error,
+      );
+
+      Alert.alert(
+        'Erro',
+        'Não foi possível atualizar o gasto.',
+      );
+    } finally {
+      setAlterandoStatus(false);
+    }
+  }
+
+  function confirmarIgnorarGasto() {
+    Alert.alert(
+      'Ignorar gasto?',
+      'O registro continuará no histórico, mas não será considerado nos totais do Dashboard e dos relatórios.',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Ignorar gasto',
+          style: 'destructive',
+          onPress: () =>
+            atualizarStatus('IGNORADO'),
+        },
+      ],
+    );
+  }
+
+  function confirmarReativarGasto() {
+    Alert.alert(
+      'Reativar gasto?',
+      'Este gasto voltará a ser considerado nos totais do Dashboard e dos relatórios.',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Reativar',
+          onPress: () =>
+            atualizarStatus('ATIVO'),
+        },
+      ],
+    );
+  }
+
+  const gastoIgnorado =
+    status === 'IGNORADO';
 
   return (
     <SafeAreaView style={styles.container}>
@@ -65,8 +164,15 @@ function DetalhesGastoScreen({
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.content}>
-        <View style={styles.valueCard}>
+        contentContainerStyle={
+          styles.content
+        }>
+        <View
+          style={[
+            styles.valueCard,
+            gastoIgnorado &&
+              styles.valueCardIgnored,
+          ]}>
           <Text style={styles.valueLabel}>
             Valor
           </Text>
@@ -74,6 +180,13 @@ function DetalhesGastoScreen({
           <Text style={styles.value}>
             {formatarValor(gasto.valor)}
           </Text>
+
+          {gastoIgnorado && (
+            <Text style={styles.ignoredNotice}>
+              Este gasto está sendo ignorado
+              nos totais.
+            </Text>
+          )}
         </View>
 
         <View style={styles.detailsCard}>
@@ -96,7 +209,9 @@ function DetalhesGastoScreen({
             </Text>
 
             <Text style={styles.text}>
-              {formatarDataHora(gasto.dataHora)}
+              {formatarDataHora(
+                gasto.dataHora,
+              )}
             </Text>
           </View>
 
@@ -132,12 +247,92 @@ function DetalhesGastoScreen({
               Status
             </Text>
 
-            <View style={styles.statusContainer}>
-              <Text style={styles.statusText}>
-                {gasto.status}
+            <View
+              style={[
+                styles.statusContainer,
+                gastoIgnorado &&
+                  styles.statusContainerIgnored,
+              ]}>
+              <Text
+                style={[
+                  styles.statusText,
+                  gastoIgnorado &&
+                    styles.statusTextIgnored,
+                ]}>
+                {status}
               </Text>
             </View>
           </View>
+        </View>
+
+        <View style={styles.actionContainer}>
+          {gastoIgnorado ? (
+            <>
+              <Text
+                style={
+                  styles.actionDescription
+                }>
+                Este gasto continua salvo no
+                histórico, mas não entra nos
+                totais.
+              </Text>
+
+              <Pressable
+                disabled={alterandoStatus}
+                onPress={
+                  confirmarReativarGasto
+                }
+                style={({pressed}) => [
+                  styles.reactivateButton,
+                  pressed &&
+                    styles.buttonPressed,
+                  alterandoStatus &&
+                    styles.buttonDisabled,
+                ]}>
+                <Text
+                  style={
+                    styles.reactivateButtonText
+                  }>
+                  {alterandoStatus
+                    ? 'Atualizando...'
+                    : 'Reativar gasto'}
+                </Text>
+              </Pressable>
+            </>
+          ) : (
+            <>
+              <Text
+                style={
+                  styles.actionDescription
+                }>
+                Caso este lançamento não deva
+                entrar nos seus relatórios,
+                você pode ignorá-lo.
+              </Text>
+
+              <Pressable
+                disabled={alterandoStatus}
+                onPress={
+                  confirmarIgnorarGasto
+                }
+                style={({pressed}) => [
+                  styles.ignoreButton,
+                  pressed &&
+                    styles.buttonPressed,
+                  alterandoStatus &&
+                    styles.buttonDisabled,
+                ]}>
+                <Text
+                  style={
+                    styles.ignoreButtonText
+                  }>
+                  {alterandoStatus
+                    ? 'Atualizando...'
+                    : 'Ignorar gasto'}
+                </Text>
+              </Pressable>
+            </>
+          )}
         </View>
 
         <View style={styles.idContainer}>
@@ -204,6 +399,10 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
 
+  valueCardIgnored: {
+    backgroundColor: '#F3F3F3',
+  },
+
   valueLabel: {
     color: '#3F6B3A',
     fontSize: 12,
@@ -215,6 +414,12 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginTop: 6,
+  },
+
+  ignoredNotice: {
+    color: '#777777',
+    fontSize: 10,
+    marginTop: 8,
   },
 
   detailsCard: {
@@ -254,10 +459,69 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
 
+  statusContainerIgnored: {
+    backgroundColor: '#E5E5E5',
+  },
+
   statusText: {
     color: '#3F6B3A',
     fontSize: 10,
     fontWeight: 'bold',
+  },
+
+  statusTextIgnored: {
+    color: '#777777',
+  },
+
+  actionContainer: {
+    marginTop: 24,
+  },
+
+  actionDescription: {
+    color: '#777777',
+    fontSize: 10,
+    lineHeight: 16,
+    textAlign: 'center',
+    marginBottom: 12,
+    paddingHorizontal: 16,
+  },
+
+  ignoreButton: {
+    height: 50,
+    borderWidth: 1,
+    borderColor: '#B3261E',
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+
+  ignoreButtonText: {
+    color: '#B3261E',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+
+  reactivateButton: {
+    height: 50,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F4E83F',
+  },
+
+  reactivateButtonText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+
+  buttonPressed: {
+    opacity: 0.6,
+  },
+
+  buttonDisabled: {
+    opacity: 0.5,
   },
 
   idContainer: {
