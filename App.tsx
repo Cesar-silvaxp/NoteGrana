@@ -15,6 +15,8 @@ import RelatorioScreen from './src/screens/RelatorioScreen';
 import ConfiguracoesScreen from './src/screens/ConfiguracoesScreen';
 import AlterarSenhaScreen from './src/screens/AlterarSenhaScreen';
 import SenhaAlteradaScreen from './src/screens/SenhaAlteradaScreen';
+import EditarPerfilScreen from './src/screens/EditarPerfilScreen';
+import PerfilAtualizadoScreen from './src/screens/PerfilAtualizadoScreen';
 import NotificationPermissionScreen from './src/screens/NotificationPermissionScreen';
 
 interface Gasto {
@@ -25,6 +27,11 @@ interface Gasto {
   pacoteOrigem: string;
   dataHora: number;
   status: string;
+}
+
+interface Perfil {
+  nome: string;
+  email: string;
 }
 
 type Tela =
@@ -40,7 +47,9 @@ type Tela =
   | 'relatorios'
   | 'configuracoes'
   | 'alterarSenha'
-  | 'senhaAlterada';
+  | 'senhaAlterada'
+  | 'editarPerfil'
+  | 'perfilAtualizado';
 
 function App() {
   const [tela, setTela] =
@@ -50,6 +59,12 @@ function App() {
     gastoSelecionado,
     setGastoSelecionado,
   ] = useState<Gasto | null>(null);
+
+  const [perfil, setPerfil] =
+    useState<Perfil>({
+      nome: 'Pedro',
+      email: 'pedro@email.com',
+    });
 
   const abrirDashboard =
     useCallback(() => {
@@ -79,18 +94,13 @@ function App() {
           setTela('login')
         }
         onCadastrar={() =>
-          setTela(
-            'cadastroConfirmado',
-          )
+          setTela('cadastroConfirmado')
         }
       />
     );
   }
 
-  if (
-    tela ===
-    'cadastroConfirmado'
-  ) {
+  if (tela === 'cadastroConfirmado') {
     return (
       <CadastroConfirmadoScreen
         onVoltarLogin={() =>
@@ -107,18 +117,13 @@ function App() {
           setTela('login')
         }
         onEnviar={() =>
-          setTela(
-            'recuperacaoConfirmada',
-          )
+          setTela('recuperacaoConfirmada')
         }
       />
     );
   }
 
-  if (
-    tela ===
-    'recuperacaoConfirmada'
-  ) {
+  if (tela === 'recuperacaoConfirmada') {
     return (
       <RecuperacaoConfirmadaScreen
         onVoltarLogin={() =>
@@ -202,9 +207,39 @@ function App() {
     );
   }
 
+  if (tela === 'editarPerfil') {
+    return (
+      <EditarPerfilScreen
+        perfil={perfil}
+        onVoltar={() =>
+          setTela('configuracoes')
+        }
+        onSalvar={novoPerfil => {
+          setPerfil(novoPerfil);
+          setTela('perfilAtualizado');
+        }}
+      />
+    );
+  }
+
+  if (tela === 'perfilAtualizado') {
+    return (
+      <PerfilAtualizadoScreen
+        onContinuar={() =>
+          setTela('configuracoes')
+        }
+      />
+    );
+  }
+
   if (tela === 'configuracoes') {
     return (
       <ConfiguracoesScreen
+        nomeUsuario={perfil.nome}
+        emailUsuario={perfil.email}
+        onEditarPerfil={() =>
+          setTela('editarPerfil')
+        }
         onAbrirDashboard={() =>
           setTela('dashboard')
         }
@@ -224,6 +259,7 @@ function App() {
 
   return (
     <DashboardScreen
+      nomeUsuario={perfil.nome}
       onAbrirHistorico={() =>
         setTela('historico')
       }

@@ -16,6 +16,9 @@ import {
 import BottomNavigation from '../components/BottomNavigation';
 
 interface ConfiguracoesScreenProps {
+  nomeUsuario: string;
+  emailUsuario: string;
+  onEditarPerfil: () => void;
   onAbrirDashboard: () => void;
   onAbrirRelatorios: () => void;
   onAlterarSenha: () => void;
@@ -26,6 +29,9 @@ const {NotificationAccessModule} =
   NativeModules;
 
 function ConfiguracoesScreen({
+  nomeUsuario,
+  emailUsuario,
+  onEditarPerfil,
   onAbrirDashboard,
   onAbrirRelatorios,
   onAlterarSenha,
@@ -105,6 +111,42 @@ function ConfiguracoesScreen({
         </Text>
 
         <Text style={styles.sectionLabel}>
+          Perfil
+        </Text>
+
+        <View style={styles.card}>
+          <Pressable
+            style={({pressed}) => [
+              styles.profileRow,
+              pressed && styles.pressed,
+            ]}
+            onPress={onEditarPerfil}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>
+                {nomeUsuario
+                  ? nomeUsuario[0].toUpperCase()
+                  : '?'}
+              </Text>
+            </View>
+
+            <View style={styles.rowContent}>
+              <Text style={styles.rowTitle}>
+                {nomeUsuario}
+              </Text>
+
+              <Text
+                style={styles.rowDescription}>
+                {emailUsuario}
+              </Text>
+            </View>
+
+            <Text style={styles.arrow}>
+              ›
+            </Text>
+          </Pressable>
+        </View>
+
+        <Text style={styles.sectionLabel}>
           Notificações
         </Text>
 
@@ -116,9 +158,7 @@ function ConfiguracoesScreen({
               </Text>
 
               <Text
-                style={
-                  styles.rowDescription
-                }>
+                style={styles.rowDescription}>
                 Necessário para identificar
                 seus gastos automaticamente.
               </Text>
@@ -127,19 +167,16 @@ function ConfiguracoesScreen({
             <View
               style={[
                 styles.statusBadge,
-                acessoNotificacoes ===
-                  false &&
+                acessoNotificacoes === false &&
                   styles.statusBadgeDisabled,
               ]}>
               <Text
                 style={[
                   styles.statusText,
-                  acessoNotificacoes ===
-                    false &&
+                  acessoNotificacoes === false &&
                     styles.statusTextDisabled,
                 ]}>
-                {acessoNotificacoes ===
-                null
+                {acessoNotificacoes === null
                   ? '...'
                   : acessoNotificacoes
                     ? 'Ativado'
@@ -155,9 +192,7 @@ function ConfiguracoesScreen({
               styles.actionRow,
               pressed && styles.pressed,
             ]}
-            onPress={
-              gerenciarNotificacoes
-            }>
+            onPress={gerenciarNotificacoes}>
             <Text style={styles.actionText}>
               Gerenciar acesso
             </Text>
@@ -185,9 +220,7 @@ function ConfiguracoesScreen({
               </Text>
 
               <Text
-                style={
-                  styles.rowDescription
-                }>
+                style={styles.rowDescription}>
                 Atualize a senha da sua conta.
               </Text>
             </View>
@@ -214,10 +247,6 @@ function ConfiguracoesScreen({
             </Text>
           </Pressable>
         </View>
-
-        <Text style={styles.versionText}>
-          NoteGrana
-        </Text>
       </View>
 
       <BottomNavigation
@@ -239,7 +268,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 18,
-    paddingTop: 30,
+    paddingTop: 24,
   },
 
   title: {
@@ -247,14 +276,14 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 34,
+    marginBottom: 24,
   },
 
   sectionLabel: {
     color: '#777777',
     fontSize: 11,
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: 7,
     marginLeft: 4,
   },
 
@@ -264,7 +293,31 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: '#FFFFFF',
     overflow: 'hidden',
-    marginBottom: 26,
+    marginBottom: 18,
+  },
+
+  profileRow: {
+    minHeight: 72,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  avatar: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#BDEBB9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+
+  avatarText: {
+    color: '#3F6B3A',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 
   row: {
@@ -360,13 +413,6 @@ const styles = StyleSheet.create({
 
   pressed: {
     opacity: 0.6,
-  },
-
-  versionText: {
-    color: '#BBBBBB',
-    fontSize: 9,
-    textAlign: 'center',
-    marginTop: 2,
   },
 });
 

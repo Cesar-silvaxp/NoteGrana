@@ -15,6 +15,7 @@ import {
 import BottomNavigation from '../components/BottomNavigation';
 
 interface DashboardScreenProps {
+  nomeUsuario: string;
   onAbrirHistorico: () => void;
   onAbrirRelatorios: () => void;
   onAbrirConfiguracoes: () => void;
@@ -33,6 +34,7 @@ interface Gasto {
 const {GastoModule} = NativeModules;
 
 function DashboardScreen({
+  nomeUsuario,
   onAbrirHistorico,
   onAbrirRelatorios,
   onAbrirConfiguracoes,
@@ -176,12 +178,16 @@ function DashboardScreen({
   const ultimosGastos =
     gastos.slice(0, 4);
 
+  const primeiroNome =
+    nomeUsuario.trim().split(' ')[0] ||
+    'Usuário';
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.header}>
           <Text style={styles.greeting}>
-            Olá, Pedro
+            Olá, {primeiroNome}
           </Text>
 
           <Text style={styles.month}>
