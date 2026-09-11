@@ -1,7 +1,12 @@
 import React, {
   useCallback,
+  useEffect,
   useState,
 } from 'react';
+
+import {
+  BackHandler,
+} from 'react-native';
 
 import LoginScreen from './src/screens/LoginScreen';
 import CadastroScreen from './src/screens/CadastroScreen';
@@ -71,6 +76,69 @@ function App() {
       setTela('dashboard');
     }, []);
 
+  useEffect(() => {
+    const voltarAndroid = () => {
+      switch (tela) {
+        case 'cadastro':
+        case 'cadastroConfirmado':
+        case 'recuperarSenha':
+        case 'recuperacaoConfirmada':
+        case 'permissao':
+          setTela('login');
+          return true;
+
+        case 'historico':
+          setTela('dashboard');
+          return true;
+
+        case 'detalhes':
+          setTela('historico');
+          return true;
+
+        case 'relatorios':
+          setTela('dashboard');
+          return true;
+
+        case 'configuracoes':
+          setTela('dashboard');
+          return true;
+
+        case 'alterarSenha':
+          setTela('configuracoes');
+          return true;
+
+        case 'senhaAlterada':
+          setTela('configuracoes');
+          return true;
+
+        case 'editarPerfil':
+          setTela('configuracoes');
+          return true;
+
+        case 'perfilAtualizado':
+          setTela('configuracoes');
+          return true;
+
+        case 'login':
+        case 'dashboard':
+          return false;
+
+        default:
+          return false;
+      }
+    };
+
+    const subscription =
+      BackHandler.addEventListener(
+        'hardwareBackPress',
+        voltarAndroid,
+      );
+
+    return () => {
+      subscription.remove();
+    };
+  }, [tela]);
+
   if (tela === 'login') {
     return (
       <LoginScreen
@@ -123,7 +191,10 @@ function App() {
     );
   }
 
-  if (tela === 'recuperacaoConfirmada') {
+  if (
+    tela ===
+    'recuperacaoConfirmada'
+  ) {
     return (
       <RecuperacaoConfirmadaScreen
         onVoltarLogin={() =>
@@ -216,13 +287,17 @@ function App() {
         }
         onSalvar={novoPerfil => {
           setPerfil(novoPerfil);
-          setTela('perfilAtualizado');
+          setTela(
+            'perfilAtualizado',
+          );
         }}
       />
     );
   }
 
-  if (tela === 'perfilAtualizado') {
+  if (
+    tela === 'perfilAtualizado'
+  ) {
     return (
       <PerfilAtualizadoScreen
         onContinuar={() =>
