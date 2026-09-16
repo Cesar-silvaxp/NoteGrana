@@ -275,9 +275,15 @@ function App() {
     );
   }
 
-  if (tela === 'alterarSenha') {
+  if (
+    tela === 'alterarSenha' &&
+    perfil &&
+    token
+  ) {
     return (
       <AlterarSenhaScreen
+        usuarioId={perfil.id}
+        token={token}
         onVoltar={() =>
           setTela('configuracoes')
         }
