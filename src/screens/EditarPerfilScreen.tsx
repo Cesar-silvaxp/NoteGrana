@@ -1,5 +1,7 @@
 import React, {useState} from 'react';
+
 import {
+  ActivityIndicator,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -9,29 +11,63 @@ import {
   View,
 } from 'react-native';
 
+const API_URL = 'http://192.168.2.11:8080';
+
 interface Perfil {
   nome: string;
   email: string;
 }
 
+interface UsuarioAtualizado {
+  id: number;
+  nome: string;
+  email: string;
+  criadoEm: string;
+}
+
+interface ErroApi {
+  status?: number;
+  mensagem?: string;
+  campos?: Record<string, string> | null;
+}
+
 interface EditarPerfilScreenProps {
   perfil: Perfil;
+  usuarioId: number;
+  token: string;
   onVoltar: () => void;
   onSalvar: (perfil: Perfil) => void;
 }
 
 function EditarPerfilScreen({
   perfil,
+  usuarioId,
+  token,
   onVoltar,
   onSalvar,
 }: EditarPerfilScreenProps) {
-  const [nome, setNome] = useState(perfil.nome);
-  const [email, setEmail] = useState(perfil.email);
-  const [erro, setErro] = useState('');
+  const [nome, setNome] =
+    useState(perfil.nome);
 
-  function validarPerfil() {
-    const nomeLimpo = nome.trim();
-    const emailLimpo = email.trim();
+  const [email, setEmail] =
+    useState(perfil.email);
+
+  const [erro, setErro] =
+    useState('');
+
+  const [
+    carregando,
+    setCarregando,
+  ] = useState(false);
+
+  async function salvarPerfil() {
+    const nomeLimpo =
+      nome.trim();
+
+    const emailLimpo =
+      email
+        .trim()
+        .toLowerCase();
 
     if (!nomeLimpo || !emailLimpo) {
       setErro(
@@ -59,31 +95,127 @@ function EditarPerfilScreen({
       return;
     }
 
-    setErro('');
+    try {
+      setCarregando(true);
+      setErro('');
 
-    onSalvar({
-      nome: nomeLimpo,
-      email: emailLimpo,
-    });
+      const response = await fetch(
+        `${API_URL}/api/usuarios/${usuarioId}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type':
+              'application/json',
+            Authorization:
+              `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            nome: nomeLimpo,
+            email: emailLimpo,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        let erroApi: ErroApi | null =
+          null;
+
+        try {
+          erroApi =
+            await response.json();
+        } catch {
+          // Mantém o tratamento padrão.
+        }
+
+        if (response.status === 409) {
+          setErro(
+            erroApi?.mensagem ??
+              'Este e-mail já está sendo utilizado.',
+          );
+          return;
+        }
+
+        if (response.status === 401) {
+          setErro(
+            'Sua sessão não é mais válida. Entre novamente.',
+          );
+          return;
+        }
+
+        if (
+          erroApi?.campos &&
+          Object.keys(
+            erroApi.campos,
+          ).length > 0
+        ) {
+          const primeiraMensagem =
+            Object.values(
+              erroApi.campos,
+            )[0];
+
+          setErro(
+            primeiraMensagem,
+          );
+          return;
+        }
+
+        setErro(
+          erroApi?.mensagem ??
+            'Não foi possível atualizar o perfil.',
+        );
+
+        return;
+      }
+
+      const usuario:
+        UsuarioAtualizado =
+        await response.json();
+
+      onSalvar({
+        nome: usuario.nome,
+        email: usuario.email,
+      });
+    } catch (error) {
+      console.log(
+        'Erro ao atualizar perfil:',
+        error,
+      );
+
+      setErro(
+        'Não foi possível conectar à API do NoteGrana.',
+      );
+    } finally {
+      setCarregando(false);
+    }
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={styles.container}>
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={
+          styles.content
+        }
         keyboardShouldPersistTaps="handled">
         <TouchableOpacity
           style={styles.backButton}
+          disabled={carregando}
           onPress={onVoltar}>
-          <Text style={styles.backButtonText}>
+          <Text
+            style={
+              styles.backButtonText
+            }>
             ← Voltar
           </Text>
         </TouchableOpacity>
 
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>
+          <Text
+            style={styles.avatarText}>
             {nome.trim()
-              ? nome.trim()[0].toUpperCase()
+              ? nome
+                  .trim()[0]
+                  .toUpperCase()
               : '?'}
           </Text>
         </View>
@@ -92,7 +224,8 @@ function EditarPerfilScreen({
           Editar perfil
         </Text>
 
-        <Text style={styles.description}>
+        <Text
+          style={styles.description}>
           Atualize seus dados pessoais do
           NoteGrana.
         </Text>
@@ -106,6 +239,7 @@ function EditarPerfilScreen({
           placeholder="Seu nome"
           placeholderTextColor="#777777"
           value={nome}
+          editable={!carregando}
           onChangeText={texto => {
             setNome(texto);
 
@@ -124,6 +258,7 @@ function EditarPerfilScreen({
           placeholder="Seu e-mail"
           placeholderTextColor="#777777"
           value={email}
+          editable={!carregando}
           onChangeText={texto => {
             setEmail(texto);
 
@@ -133,25 +268,43 @@ function EditarPerfilScreen({
           }}
           keyboardType="email-address"
           autoCapitalize="none"
+          autoCorrect={false}
+          onSubmitEditing={salvarPerfil}
         />
 
         {erro ? (
-          <Text style={styles.errorText}>
+          <Text
+            style={styles.errorText}>
             {erro}
           </Text>
         ) : null}
 
         <TouchableOpacity
-          style={styles.saveButton}
-          onPress={validarPerfil}>
-          <Text style={styles.saveButtonText}>
-            Salvar alterações
-          </Text>
+          style={[
+            styles.saveButton,
+            carregando &&
+              styles.saveButtonDisabled,
+          ]}
+          disabled={carregando}
+          onPress={salvarPerfil}>
+          {carregando ? (
+            <ActivityIndicator
+              color="#FFFFFF"
+            />
+          ) : (
+            <Text
+              style={
+                styles.saveButtonText
+              }>
+              Salvar alterações
+            </Text>
+          )}
         </TouchableOpacity>
 
         <Text style={styles.helpText}>
-          A alteração será salva definitivamente
-          quando o perfil estiver integrado à API.
+          As alterações serão salvas
+          diretamente na sua conta do
+          NoteGrana.
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -251,6 +404,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 3,
+  },
+
+  saveButtonDisabled: {
+    opacity: 0.7,
   },
 
   saveButtonText: {

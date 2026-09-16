@@ -300,11 +300,14 @@ function App() {
 
   if (
     tela === 'editarPerfil' &&
-    perfil
+    perfil &&
+    token
   ) {
     return (
       <EditarPerfilScreen
         perfil={perfil}
+        usuarioId={perfil.id}
+        token={token}
         onVoltar={() =>
           setTela('configuracoes')
         }
