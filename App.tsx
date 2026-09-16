@@ -9,6 +9,10 @@ import {
 } from 'react-native';
 
 import LoginScreen from './src/screens/LoginScreen';
+import type {
+  UsuarioLogado,
+} from './src/screens/LoginScreen';
+
 import CadastroScreen from './src/screens/CadastroScreen';
 import CadastroConfirmadoScreen from './src/screens/CadastroConfirmadoScreen';
 import RecuperarSenhaScreen from './src/screens/RecuperarSenhaScreen';
@@ -32,11 +36,6 @@ interface Gasto {
   pacoteOrigem: string;
   dataHora: number;
   status: string;
-}
-
-interface Perfil {
-  nome: string;
-  email: string;
 }
 
 type Tela =
@@ -65,15 +64,36 @@ function App() {
     setGastoSelecionado,
   ] = useState<Gasto | null>(null);
 
+  const [token, setToken] =
+    useState<string | null>(null);
+
   const [perfil, setPerfil] =
-    useState<Perfil>({
-      nome: 'Pedro',
-      email: 'pedro@email.com',
-    });
+    useState<UsuarioLogado | null>(null);
 
   const abrirDashboard =
     useCallback(() => {
       setTela('dashboard');
+    }, []);
+
+  const realizarLogin =
+    useCallback(
+      (
+        novoToken: string,
+        usuario: UsuarioLogado,
+      ) => {
+        setToken(novoToken);
+        setPerfil(usuario);
+        setTela('permissao');
+      },
+      [],
+    );
+
+  const sair =
+    useCallback(() => {
+      setToken(null);
+      setPerfil(null);
+      setGastoSelecionado(null);
+      setTela('login');
     }, []);
 
   useEffect(() => {
@@ -142,9 +162,7 @@ function App() {
   if (tela === 'login') {
     return (
       <LoginScreen
-        onLogin={() =>
-          setTela('permissao')
-        }
+        onLogin={realizarLogin}
         onCriarConta={() =>
           setTela('cadastro')
         }
@@ -185,7 +203,9 @@ function App() {
           setTela('login')
         }
         onEnviar={() =>
-          setTela('recuperacaoConfirmada')
+          setTela(
+            'recuperacaoConfirmada',
+          )
         }
       />
     );
@@ -278,7 +298,10 @@ function App() {
     );
   }
 
-  if (tela === 'editarPerfil') {
+  if (
+    tela === 'editarPerfil' &&
+    perfil
+  ) {
     return (
       <EditarPerfilScreen
         perfil={perfil}
@@ -286,7 +309,18 @@ function App() {
           setTela('configuracoes')
         }
         onSalvar={novoPerfil => {
-          setPerfil(novoPerfil);
+          setPerfil(perfilAtual => {
+            if (!perfilAtual) {
+              return perfilAtual;
+            }
+
+            return {
+              ...perfilAtual,
+              nome: novoPerfil.nome,
+              email: novoPerfil.email,
+            };
+          });
+
           setTela(
             'perfilAtualizado',
           );
@@ -307,7 +341,10 @@ function App() {
     );
   }
 
-  if (tela === 'configuracoes') {
+  if (
+    tela === 'configuracoes' &&
+    perfil
+  ) {
     return (
       <ConfiguracoesScreen
         nomeUsuario={perfil.nome}
@@ -324,10 +361,21 @@ function App() {
         onAlterarSenha={() =>
           setTela('alterarSenha')
         }
-        onSair={() => {
-          setGastoSelecionado(null);
-          setTela('login');
-        }}
+        onSair={sair}
+      />
+    );
+  }
+
+  if (!perfil || !token) {
+    return (
+      <LoginScreen
+        onLogin={realizarLogin}
+        onCriarConta={() =>
+          setTela('cadastro')
+        }
+        onRecuperarSenha={() =>
+          setTela('recuperarSenha')
+        }
       />
     );
   }

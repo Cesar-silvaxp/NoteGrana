@@ -1,5 +1,7 @@
 import React, {useState} from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -8,8 +10,27 @@ import {
   View,
 } from 'react-native';
 
+const API_URL = 'http://192.168.2.11:8080';
+
+export type UsuarioLogado = {
+  id: number;
+  nome: string;
+  email: string;
+  criadoEm: string;
+};
+
+type LoginResponse = {
+  token: string;
+  tipo: string;
+  expiraEm: string;
+  usuario: UsuarioLogado;
+};
+
 type LoginScreenProps = {
-  onLogin: () => void;
+  onLogin: (
+    token: string,
+    usuario: UsuarioLogado,
+  ) => void;
   onCriarConta: () => void;
   onRecuperarSenha: () => void;
 };
@@ -23,6 +44,101 @@ function LoginScreen({
   const [senha, setSenha] = useState('');
   const [mostrarSenha, setMostrarSenha] =
     useState(false);
+  const [carregando, setCarregando] =
+    useState(false);
+
+  async function entrar() {
+    const emailNormalizado =
+      email.trim().toLowerCase();
+
+    if (!emailNormalizado || !senha) {
+      Alert.alert(
+        'Atenção',
+        'Informe seu e-mail e sua senha.',
+      );
+      return;
+    }
+
+    try {
+      setCarregando(true);
+
+      const response = await fetch(
+        `${API_URL}/api/usuarios/login`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type':
+              'application/json',
+          },
+          body: JSON.stringify({
+            email: emailNormalizado,
+            senha,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          Alert.alert(
+            'Não foi possível entrar',
+            'E-mail ou senha inválidos.',
+          );
+          return;
+        }
+
+        let mensagem =
+          'Não foi possível realizar o login.';
+
+        try {
+          const erro = await response.json();
+
+          if (erro?.mensagem) {
+            mensagem = erro.mensagem;
+          }
+        } catch {
+          // Mantém a mensagem padrão.
+        }
+
+        Alert.alert(
+          'Erro',
+          mensagem,
+        );
+
+        return;
+      }
+
+      const dados: LoginResponse =
+        await response.json();
+
+      if (
+        !dados.token ||
+        !dados.usuario
+      ) {
+        Alert.alert(
+          'Erro',
+          'A resposta da API não é válida.',
+        );
+        return;
+      }
+
+      onLogin(
+        dados.token,
+        dados.usuario,
+      );
+    } catch (error) {
+      console.log(
+        'Erro ao conectar com a API:',
+        error,
+      );
+
+      Alert.alert(
+        'Erro de conexão',
+        'Não foi possível conectar à API do NoteGrana. Verifique se o computador e o celular estão na mesma rede Wi-Fi e se a API está em execução.',
+      );
+    } finally {
+      setCarregando(false);
+    }
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -48,6 +164,8 @@ function LoginScreen({
           onChangeText={setEmail}
           keyboardType="email-address"
           autoCapitalize="none"
+          autoCorrect={false}
+          editable={!carregando}
         />
 
         <View style={styles.passwordContainer}>
@@ -58,11 +176,16 @@ function LoginScreen({
             value={senha}
             onChangeText={setSenha}
             secureTextEntry={!mostrarSenha}
+            editable={!carregando}
+            onSubmitEditing={entrar}
           />
 
           <TouchableOpacity
+            disabled={carregando}
             onPress={() =>
-              setMostrarSenha(!mostrarSenha)
+              setMostrarSenha(
+                !mostrarSenha,
+              )
             }>
             <Text style={styles.eye}>
               {mostrarSenha ? '●' : '◉'}
@@ -71,26 +194,45 @@ function LoginScreen({
         </View>
 
         <TouchableOpacity
-          style={styles.loginButton}
-          onPress={onLogin}>
-          <Text style={styles.loginButtonText}>
-            Entrar
-          </Text>
+          style={[
+            styles.loginButton,
+            carregando &&
+              styles.loginButtonDisabled,
+          ]}
+          disabled={carregando}
+          onPress={entrar}>
+          {carregando ? (
+            <ActivityIndicator
+              color="#FFFFFF"
+            />
+          ) : (
+            <Text
+              style={
+                styles.loginButtonText
+              }>
+              Entrar
+            </Text>
+          )}
         </TouchableOpacity>
 
         <TouchableOpacity
+          disabled={carregando}
           onPress={onRecuperarSenha}>
           <Text style={styles.forgotPassword}>
             Esqueci minha senha
           </Text>
         </TouchableOpacity>
 
-        <View style={styles.createAccountContainer}>
+        <View
+          style={
+            styles.createAccountContainer
+          }>
           <Text style={styles.newHere}>
             Novo por aqui?{' '}
           </Text>
 
           <TouchableOpacity
+            disabled={carregando}
             onPress={onCriarConta}>
             <Text style={styles.createAccount}>
               Criar conta
@@ -189,6 +331,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 3,
+  },
+
+  loginButtonDisabled: {
+    opacity: 0.7,
   },
 
   loginButtonText: {
