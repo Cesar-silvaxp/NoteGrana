@@ -16,6 +16,7 @@ import type {
 import CadastroScreen from './src/screens/CadastroScreen';
 import CadastroConfirmadoScreen from './src/screens/CadastroConfirmadoScreen';
 import RecuperarSenhaScreen from './src/screens/RecuperarSenhaScreen';
+import RedefinirSenhaScreen from './src/screens/RedefinirSenhaScreen';
 import RecuperacaoConfirmadaScreen from './src/screens/RecuperacaoConfirmadaScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
 import HistoricoScreen from './src/screens/HistoricoScreen';
@@ -43,6 +44,7 @@ type Tela =
   | 'cadastro'
   | 'cadastroConfirmado'
   | 'recuperarSenha'
+  | 'redefinirSenha'
   | 'recuperacaoConfirmada'
   | 'permissao'
   | 'dashboard'
@@ -69,6 +71,11 @@ function App() {
 
   const [perfil, setPerfil] =
     useState<UsuarioLogado | null>(null);
+
+  const [
+    tokenRecuperacao,
+    setTokenRecuperacao,
+  ] = useState<string | null>(null);
 
   const abrirDashboard =
     useCallback(() => {
@@ -107,6 +114,11 @@ function App() {
           setTela('login');
           return true;
 
+        case 'redefinirSenha':
+          setTokenRecuperacao(null);
+          setTela('recuperarSenha');
+          return true;
+
         case 'historico':
           setTela('dashboard');
           return true;
@@ -124,17 +136,8 @@ function App() {
           return true;
 
         case 'alterarSenha':
-          setTela('configuracoes');
-          return true;
-
         case 'senhaAlterada':
-          setTela('configuracoes');
-          return true;
-
         case 'editarPerfil':
-          setTela('configuracoes');
-          return true;
-
         case 'perfilAtualizado':
           setTela('configuracoes');
           return true;
@@ -199,14 +202,41 @@ function App() {
   if (tela === 'recuperarSenha') {
     return (
       <RecuperarSenhaScreen
-        onVoltar={() =>
-          setTela('login')
-        }
-        onEnviar={() =>
+        onVoltar={() => {
+          setTokenRecuperacao(null);
+          setTela('login');
+        }}
+        onEnviar={novoToken => {
+          setTokenRecuperacao(
+            novoToken,
+          );
+
+          setTela(
+            'redefinirSenha',
+          );
+        }}
+      />
+    );
+  }
+
+  if (
+    tela === 'redefinirSenha' &&
+    tokenRecuperacao
+  ) {
+    return (
+      <RedefinirSenhaScreen
+        token={tokenRecuperacao}
+        onVoltar={() => {
+          setTokenRecuperacao(null);
+          setTela('recuperarSenha');
+        }}
+        onSenhaRedefinida={() => {
+          setTokenRecuperacao(null);
+
           setTela(
             'recuperacaoConfirmada',
-          )
-        }
+          );
+        }}
       />
     );
   }

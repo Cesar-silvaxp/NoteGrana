@@ -1,5 +1,7 @@
 import React, {useState} from 'react';
+
 import {
+  ActivityIndicator,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -8,23 +10,49 @@ import {
   View,
 } from 'react-native';
 
+const API_URL = 'http://192.168.2.11:8080';
+
+interface RecuperacaoResponse {
+  mensagem: string;
+  tokenTeste: string | null;
+}
+
+interface ErroApi {
+  status?: number;
+  mensagem?: string;
+  campos?: Record<string, string> | null;
+}
+
 interface RecuperarSenhaScreenProps {
   onVoltar: () => void;
-  onEnviar: () => void;
+  onEnviar: (token: string) => void;
 }
 
 function RecuperarSenhaScreen({
   onVoltar,
   onEnviar,
 }: RecuperarSenhaScreenProps) {
-  const [email, setEmail] = useState('');
-  const [erro, setErro] = useState('');
+  const [email, setEmail] =
+    useState('');
 
-  function enviarRecuperacao() {
-    const emailLimpo = email.trim();
+  const [erro, setErro] =
+    useState('');
+
+  const [
+    carregando,
+    setCarregando,
+  ] = useState(false);
+
+  async function enviarRecuperacao() {
+    const emailLimpo =
+      email
+        .trim()
+        .toLowerCase();
 
     if (!emailLimpo) {
-      setErro('Informe seu e-mail.');
+      setErro(
+        'Informe seu e-mail.',
+      );
       return;
     }
 
@@ -34,27 +62,122 @@ function RecuperarSenhaScreen({
       );
 
     if (!emailValido) {
-      setErro('Informe um e-mail válido.');
+      setErro(
+        'Informe um e-mail válido.',
+      );
       return;
     }
 
-    setErro('');
-    onEnviar();
+    try {
+      setCarregando(true);
+      setErro('');
+
+      const response = await fetch(
+        `${API_URL}/api/recuperacao-senha/solicitar`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type':
+              'application/json',
+          },
+          body: JSON.stringify({
+            email: emailLimpo,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        let erroApi: ErroApi | null =
+          null;
+
+        try {
+          erroApi =
+            await response.json();
+        } catch {
+          // Mantém mensagem padrão.
+        }
+
+        if (
+          erroApi?.campos &&
+          Object.keys(
+            erroApi.campos,
+          ).length > 0
+        ) {
+          const primeiraMensagem =
+            Object.values(
+              erroApi.campos,
+            )[0];
+
+          setErro(
+            primeiraMensagem,
+          );
+
+          return;
+        }
+
+        setErro(
+          erroApi?.mensagem ??
+            'Não foi possível solicitar a recuperação de senha.',
+        );
+
+        return;
+      }
+
+      const dados:
+        RecuperacaoResponse =
+        await response.json();
+
+      /*
+       * tokenTeste existe somente
+       * durante o desenvolvimento.
+       *
+       * Quando houver envio real de
+       * e-mail, ele será removido da
+       * resposta da API.
+       */
+      if (!dados.tokenTeste) {
+        setErro(
+          'Não foi possível continuar a recuperação de senha.',
+        );
+        return;
+      }
+
+      onEnviar(
+        dados.tokenTeste,
+      );
+    } catch (error) {
+      console.log(
+        'Erro ao solicitar recuperação de senha:',
+        error,
+      );
+
+      setErro(
+        'Não foi possível conectar à API do NoteGrana.',
+      );
+    } finally {
+      setCarregando(false);
+    }
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={styles.container}>
       <View style={styles.content}>
         <TouchableOpacity
           style={styles.backButton}
+          disabled={carregando}
           onPress={onVoltar}>
-          <Text style={styles.backButtonText}>
+          <Text
+            style={
+              styles.backButtonText
+            }>
             ← Voltar
           </Text>
         </TouchableOpacity>
 
         <View style={styles.logo}>
-          <Text style={styles.logoIcon}>
+          <Text
+            style={styles.logoIcon}>
             ▰
           </Text>
         </View>
@@ -67,10 +190,11 @@ function RecuperarSenhaScreen({
           Recuperar senha
         </Text>
 
-        <Text style={styles.description}>
-          Informe o e-mail cadastrado na sua conta.
-          Enviaremos as instruções para você criar
-          uma nova senha.
+        <Text
+          style={styles.description}>
+          Informe o e-mail cadastrado
+          na sua conta para iniciar a
+          recuperação da senha.
         </Text>
 
         <TextInput
@@ -79,7 +203,9 @@ function RecuperarSenhaScreen({
           placeholderTextColor="#666666"
           keyboardType="email-address"
           autoCapitalize="none"
+          autoCorrect={false}
           value={email}
+          editable={!carregando}
           onChangeText={texto => {
             setEmail(texto);
 
@@ -87,25 +213,46 @@ function RecuperarSenhaScreen({
               setErro('');
             }
           }}
+          onSubmitEditing={
+            enviarRecuperacao
+          }
         />
 
         {erro ? (
-          <Text style={styles.errorText}>
+          <Text
+            style={
+              styles.errorText
+            }>
             {erro}
           </Text>
         ) : null}
 
         <TouchableOpacity
-          style={styles.sendButton}
+          style={[
+            styles.sendButton,
+            carregando &&
+              styles.sendButtonDisabled,
+          ]}
+          disabled={carregando}
           onPress={enviarRecuperacao}>
-          <Text style={styles.sendButtonText}>
-            Enviar
-          </Text>
+          {carregando ? (
+            <ActivityIndicator
+              color="#FFFFFF"
+            />
+          ) : (
+            <Text
+              style={
+                styles.sendButtonText
+              }>
+              Continuar
+            </Text>
+          )}
         </TouchableOpacity>
 
         <Text style={styles.helpText}>
-          Verifique também a pasta de spam ou lixo
-          eletrônico caso não encontre a mensagem.
+          Se existir uma conta vinculada
+          ao e-mail informado, o processo
+          de recuperação será iniciado.
         </Text>
       </View>
     </SafeAreaView>
@@ -203,6 +350,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     elevation: 3,
     marginTop: 24,
+  },
+
+  sendButtonDisabled: {
+    opacity: 0.7,
   },
 
   sendButtonText: {

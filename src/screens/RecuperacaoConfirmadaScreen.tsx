@@ -1,4 +1,5 @@
 import React from 'react';
+
 import {
   SafeAreaView,
   StyleSheet,
@@ -15,28 +16,32 @@ function RecuperacaoConfirmadaScreen({
   onVoltarLogin,
 }: RecuperacaoConfirmadaScreenProps) {
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={styles.container}>
       <View style={styles.content}>
-        <View style={styles.iconCircle}>
+        <View
+          style={styles.iconCircle}>
           <Text style={styles.icon}>
             ✓
           </Text>
         </View>
 
         <Text style={styles.title}>
-          Solicitação enviada!
+          Senha redefinida!
         </Text>
 
-        <Text style={styles.description}>
-          Se o e-mail estiver cadastrado no
-          NoteGrana, você receberá as instruções
-          para redefinir sua senha.
+        <Text
+          style={styles.description}>
+          Sua nova senha foi salva com
+          sucesso. Agora você já pode
+          entrar novamente no NoteGrana.
         </Text>
 
         <TouchableOpacity
           style={styles.button}
           onPress={onVoltarLogin}>
-          <Text style={styles.buttonText}>
+          <Text
+            style={styles.buttonText}>
             Voltar para o login
           </Text>
         </TouchableOpacity>
