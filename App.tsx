@@ -29,6 +29,10 @@ import EditarPerfilScreen from './src/screens/EditarPerfilScreen';
 import PerfilAtualizadoScreen from './src/screens/PerfilAtualizadoScreen';
 import NotificationPermissionScreen from './src/screens/NotificationPermissionScreen';
 
+import {
+  sincronizarGastos,
+} from './src/services/GastoSyncService';
+
 interface Gasto {
   id: string;
   valor: number;
@@ -102,6 +106,47 @@ function App() {
       setGastoSelecionado(null);
       setTela('login');
     }, []);
+
+  /*
+   * Sempre que um novo JWT entrar
+   * na sessão, tentamos sincronizar
+   * os gastos locais pendentes.
+   */
+  useEffect(() => {
+    if (!token) {
+      return;
+    }
+
+    let ativo = true;
+
+    async function executarSincronizacao() {
+      try {
+        const total =
+          await sincronizarGastos(
+            token as string,
+          );
+
+        if (ativo) {
+          console.log(
+            `Sincronização concluída. ${total} gasto(s) sincronizado(s).`,
+          );
+        }
+      } catch (error) {
+        if (ativo) {
+          console.log(
+            'Não foi possível executar a sincronização de gastos:',
+            error,
+          );
+        }
+      }
+    }
+
+    executarSincronizacao();
+
+    return () => {
+      ativo = false;
+    };
+  }, [token]);
 
   useEffect(() => {
     const voltarAndroid = () => {
