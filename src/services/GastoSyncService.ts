@@ -3,7 +3,7 @@ import {
 } from 'react-native';
 
 const API_URL =
-  'http://192.168.2.11:8080';
+  'https://notegrana-api.onrender.com';
 
 type StatusGasto =
   | 'ATIVO'

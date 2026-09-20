@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 
-const API_URL = 'http://192.168.2.11:8080';
+const API_URL = 'https://notegrana-api.onrender.com';
 
 interface RecuperacaoResponse {
   mensagem: string;
