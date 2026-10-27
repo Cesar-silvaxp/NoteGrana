@@ -2,6 +2,9 @@ import React, {useState} from 'react';
 
 import {
   ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -10,22 +13,12 @@ import {
   View,
 } from 'react-native';
 
-const API_URL = 'https://notegrana-api.onrender.com';
-
-interface RecuperacaoResponse {
-  mensagem: string;
-  tokenTeste: string | null;
-}
-
-interface ErroApi {
-  status?: number;
-  mensagem?: string;
-  campos?: Record<string, string> | null;
-}
+const API_URL =
+  'https://notegrana-api.onrender.com';
 
 interface RecuperarSenhaScreenProps {
   onVoltar: () => void;
-  onEnviar: (token: string) => void;
+  onEnviar: () => void;
 }
 
 function RecuperarSenhaScreen({
@@ -35,42 +28,33 @@ function RecuperarSenhaScreen({
   const [email, setEmail] =
     useState('');
 
-  const [erro, setErro] =
-    useState('');
-
   const [
     carregando,
     setCarregando,
   ] = useState(false);
 
-  async function enviarRecuperacao() {
-    const emailLimpo =
+  const [
+    solicitado,
+    setSolicitado,
+  ] = useState(false);
+
+  async function solicitarRecuperacao() {
+    const emailNormalizado =
       email
         .trim()
         .toLowerCase();
 
-    if (!emailLimpo) {
-      setErro(
-        'Informe seu e-mail.',
-      );
-      return;
-    }
-
-    const emailValido =
-      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
-        emailLimpo,
+    if (!emailNormalizado) {
+      Alert.alert(
+        'E-mail obrigatório',
+        'Informe o e-mail cadastrado no NoteGrana.',
       );
 
-    if (!emailValido) {
-      setErro(
-        'Informe um e-mail válido.',
-      );
       return;
     }
 
     try {
       setCarregando(true);
-      setErro('');
 
       const response = await fetch(
         `${API_URL}/api/recuperacao-senha/solicitar`,
@@ -81,78 +65,28 @@ function RecuperarSenhaScreen({
               'application/json',
           },
           body: JSON.stringify({
-            email: emailLimpo,
+            email:
+              emailNormalizado,
           }),
         },
       );
 
       if (!response.ok) {
-        let erroApi: ErroApi | null =
-          null;
-
-        try {
-          erroApi =
-            await response.json();
-        } catch {
-          // Mantém mensagem padrão.
-        }
-
-        if (
-          erroApi?.campos &&
-          Object.keys(
-            erroApi.campos,
-          ).length > 0
-        ) {
-          const primeiraMensagem =
-            Object.values(
-              erroApi.campos,
-            )[0];
-
-          setErro(
-            primeiraMensagem,
-          );
-
-          return;
-        }
-
-        setErro(
-          erroApi?.mensagem ??
-            'Não foi possível solicitar a recuperação de senha.',
+        throw new Error(
+          'Não foi possível solicitar a recuperação de senha.',
         );
-
-        return;
       }
 
-      const dados:
-        RecuperacaoResponse =
-        await response.json();
-
-      /*
-       * tokenTeste existe somente
-       * durante o desenvolvimento.
-       *
-       * Quando houver envio real de
-       * e-mail, ele será removido da
-       * resposta da API.
-       */
-      if (!dados.tokenTeste) {
-        setErro(
-          'Não foi possível continuar a recuperação de senha.',
-        );
-        return;
-      }
-
-      onEnviar(
-        dados.tokenTeste,
-      );
+      setSolicitado(true);
     } catch (error) {
       console.log(
-        'Erro ao solicitar recuperação de senha:',
+        'Erro ao solicitar recuperação:',
         error,
       );
 
-      setErro(
-        'Não foi possível conectar à API do NoteGrana.',
+      Alert.alert(
+        'Erro',
+        'Não foi possível solicitar a recuperação de senha. Verifique sua conexão e tente novamente.',
       );
     } finally {
       setCarregando(false);
@@ -162,99 +96,165 @@ function RecuperarSenhaScreen({
   return (
     <SafeAreaView
       style={styles.container}>
-      <View style={styles.content}>
-        <TouchableOpacity
-          style={styles.backButton}
-          disabled={carregando}
-          onPress={onVoltar}>
-          <Text
-            style={
-              styles.backButtonText
-            }>
-            ← Voltar
-          </Text>
-        </TouchableOpacity>
-
-        <View style={styles.logo}>
-          <Text
-            style={styles.logoIcon}>
-            ▰
-          </Text>
-        </View>
-
-        <Text style={styles.appName}>
-          NoteGrana
-        </Text>
-
-        <Text style={styles.title}>
-          Recuperar senha
-        </Text>
-
-        <Text
-          style={styles.description}>
-          Informe o e-mail cadastrado
-          na sua conta para iniciar a
-          recuperação da senha.
-        </Text>
-
-        <TextInput
-          style={styles.input}
-          placeholder="Seu e-mail"
-          placeholderTextColor="#666666"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-          value={email}
-          editable={!carregando}
-          onChangeText={texto => {
-            setEmail(texto);
-
-            if (erro) {
-              setErro('');
-            }
-          }}
-          onSubmitEditing={
-            enviarRecuperacao
-          }
-        />
-
-        {erro ? (
-          <Text
-            style={
-              styles.errorText
-            }>
-            {erro}
-          </Text>
-        ) : null}
-
-        <TouchableOpacity
-          style={[
-            styles.sendButton,
-            carregando &&
-              styles.sendButtonDisabled,
-          ]}
-          disabled={carregando}
-          onPress={enviarRecuperacao}>
-          {carregando ? (
-            <ActivityIndicator
-              color="#FFFFFF"
-            />
-          ) : (
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={
+          Platform.OS === 'ios'
+            ? 'padding'
+            : undefined
+        }>
+        <View style={styles.content}>
+          <TouchableOpacity
+            style={styles.backButton}
+            disabled={carregando}
+            onPress={onVoltar}>
             <Text
               style={
-                styles.sendButtonText
+                styles.backButtonText
               }>
-              Continuar
+              ← Voltar
             </Text>
-          )}
-        </TouchableOpacity>
+          </TouchableOpacity>
 
-        <Text style={styles.helpText}>
-          Se existir uma conta vinculada
-          ao e-mail informado, o processo
-          de recuperação será iniciado.
-        </Text>
-      </View>
+          <View
+            style={
+              styles.iconContainer
+            }>
+            <Text style={styles.icon}>
+              ●
+            </Text>
+          </View>
+
+          <Text style={styles.title}>
+            Recuperar senha
+          </Text>
+
+          {!solicitado ? (
+            <>
+              <Text
+                style={
+                  styles.description
+                }>
+                Informe o e-mail cadastrado
+                no NoteGrana. Enviaremos um
+                código para você redefinir
+                sua senha.
+              </Text>
+
+              <Text style={styles.label}>
+                E-mail
+              </Text>
+
+              <TextInput
+                style={styles.input}
+                value={email}
+                onChangeText={setEmail}
+                placeholder="seuemail@exemplo.com"
+                placeholderTextColor="#777777"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!carregando}
+                returnKeyType="send"
+                onSubmitEditing={
+                  solicitarRecuperacao
+                }
+              />
+
+              <TouchableOpacity
+                style={[
+                  styles.sendButton,
+                  carregando &&
+                    styles.buttonDisabled,
+                ]}
+                disabled={carregando}
+                onPress={
+                  solicitarRecuperacao
+                }>
+                {carregando ? (
+                  <ActivityIndicator
+                    color="#FFFFFF"
+                  />
+                ) : (
+                  <Text
+                    style={
+                      styles.sendButtonText
+                    }>
+                    Enviar código
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <View
+                style={
+                  styles.noticeContainer
+                }>
+                <Text
+                  style={
+                    styles.noticeTitle
+                  }>
+                  Verifique seu e-mail
+                </Text>
+
+                <Text
+                  style={
+                    styles.noticeText
+                  }>
+                  Se o e-mail estiver
+                  cadastrado, enviaremos um
+                  código de recuperação.
+                </Text>
+
+                <Text
+                  style={
+                    styles.noticeText
+                  }>
+                  O código é válido por
+                  15 minutos.
+                </Text>
+
+                <Text
+                  style={
+                    styles.spamText
+                  }>
+                  Não encontrou o e-mail?
+                  Verifique também a pasta
+                  Spam ou Lixo eletrônico.
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                style={styles.sendButton}
+                onPress={onEnviar}>
+                <Text
+                  style={
+                    styles.sendButtonText
+                  }>
+                  Digitar código
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={
+                  styles.secondaryButton
+                }
+                disabled={carregando}
+                onPress={() =>
+                  setSolicitado(false)
+                }>
+                <Text
+                  style={
+                    styles.secondaryButtonText
+                  }>
+                  Solicitar novo código
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -267,9 +267,8 @@ const styles = StyleSheet.create({
 
   content: {
     flex: 1,
-    alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: 32,
-    paddingTop: 24,
   },
 
   backButton: {
@@ -284,34 +283,28 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 
-  logo: {
-    width: 52,
-    height: 42,
-    backgroundColor: '#3F6B3A',
-    borderRadius: 9,
+  iconContainer: {
+    width: 78,
+    height: 78,
+    borderRadius: 39,
+    backgroundColor: '#BDEBB9',
+    alignSelf: 'center',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    marginBottom: 20,
   },
 
-  logoIcon: {
-    color: '#172816',
-    fontSize: 24,
-  },
-
-  appName: {
+  icon: {
     color: '#3F6B3A',
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 40,
+    fontSize: 30,
   },
 
   title: {
-    color: '#222222',
-    fontSize: 20,
+    color: '#3F6B3A',
+    fontSize: 24,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 14,
+    marginBottom: 12,
   },
 
   description: {
@@ -322,6 +315,14 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
 
+  label: {
+    color: '#3F6B3A',
+    fontSize: 11,
+    fontWeight: 'bold',
+    marginBottom: 7,
+    marginLeft: 3,
+  },
+
   input: {
     width: '100%',
     height: 52,
@@ -329,16 +330,10 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     paddingHorizontal: 18,
     color: '#222222',
+    fontSize: 14,
     fontWeight: '600',
+    marginBottom: 20,
     elevation: 3,
-  },
-
-  errorText: {
-    width: '100%',
-    color: '#B3261E',
-    fontSize: 11,
-    textAlign: 'center',
-    marginTop: 12,
   },
 
   sendButton: {
@@ -349,10 +344,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 3,
-    marginTop: 24,
   },
 
-  sendButtonDisabled: {
+  buttonDisabled: {
     opacity: 0.7,
   },
 
@@ -362,13 +356,51 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 
-  helpText: {
-    color: '#999999',
-    fontSize: 10,
-    lineHeight: 15,
+  noticeContainer: {
+    width: '100%',
+    backgroundColor: '#F0F8EF',
+    borderRadius: 13,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    marginBottom: 24,
+  },
+
+  noticeTitle: {
+    color: '#3F6B3A',
+    fontSize: 16,
+    fontWeight: 'bold',
     textAlign: 'center',
-    marginTop: 26,
-    paddingHorizontal: 12,
+    marginBottom: 12,
+  },
+
+  noticeText: {
+    color: '#555555',
+    fontSize: 11,
+    lineHeight: 18,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+
+  spamText: {
+    color: '#3F6B3A',
+    fontSize: 11,
+    lineHeight: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginTop: 4,
+  },
+
+  secondaryButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 18,
+    marginTop: 4,
+  },
+
+  secondaryButtonText: {
+    color: '#3F6B3A',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });
 

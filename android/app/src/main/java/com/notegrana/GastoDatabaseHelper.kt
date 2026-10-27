@@ -28,11 +28,14 @@ class GastoDatabaseHelper(
                 data_hora INTEGER NOT NULL,
                 status TEXT NOT NULL,
                 api_id INTEGER,
-                sincronizado INTEGER NOT NULL DEFAULT 0
+                sincronizado INTEGER NOT NULL DEFAULT 0,
+                usuario_id INTEGER
             )
         """.trimIndent()
 
         db.execSQL(sql)
+
+        criarIndiceUsuario(db)
     }
 
     override fun onUpgrade(
@@ -56,12 +59,102 @@ class GastoDatabaseHelper(
                 """.trimIndent()
             )
         }
+
+        if (oldVersion < 3) {
+            db.execSQL(
+                """
+                ALTER TABLE $TABLE_GASTOS
+                ADD COLUMN usuario_id INTEGER
+                """.trimIndent()
+            )
+
+            criarIndiceUsuario(db)
+        }
+    }
+
+    private fun criarIndiceUsuario(
+        db: SQLiteDatabase
+    ) {
+        db.execSQL(
+            """
+            CREATE INDEX IF NOT EXISTS
+            idx_gastos_usuario_id
+            ON $TABLE_GASTOS(usuario_id)
+            """.trimIndent()
+        )
+    }
+
+    fun existeGastoDuplicado(
+        usuarioId: Long,
+        valor: Double,
+        titulo: String,
+        descricao: String,
+        pacoteOrigem: String,
+        dataHora: Long,
+        janelaMs: Long =
+            JANELA_DUPLICIDADE_MS
+    ): Boolean {
+
+        if (usuarioId <= 0) {
+            return false
+        }
+
+        val inicioJanela =
+            dataHora - janelaMs
+
+        val fimJanela =
+            dataHora + janelaMs
+
+        val db =
+            readableDatabase
+
+        val cursor =
+            db.rawQuery(
+                """
+                SELECT 1
+                FROM $TABLE_GASTOS
+                WHERE usuario_id = ?
+                  AND valor = ?
+                  AND titulo = ?
+                  AND descricao = ?
+                  AND pacote_origem = ?
+                  AND data_hora BETWEEN ? AND ?
+                LIMIT 1
+                """.trimIndent(),
+                arrayOf(
+                    usuarioId.toString(),
+                    valor.toString(),
+                    titulo,
+                    descricao,
+                    pacoteOrigem,
+                    inicioJanela.toString(),
+                    fimJanela.toString()
+                )
+            )
+
+        val existe =
+            cursor.use {
+                it.moveToFirst()
+            }
+
+        db.close()
+
+        return existe
     }
 
     fun inserirGasto(
         gasto: Gasto
     ): Boolean {
-        val db = writableDatabase
+        val usuarioId =
+            gasto.usuarioId
+                ?: return false
+
+        if (usuarioId <= 0) {
+            return false
+        }
+
+        val db =
+            writableDatabase
 
         val values =
             ContentValues().apply {
@@ -109,13 +202,16 @@ class GastoDatabaseHelper(
 
                 put(
                     "sincronizado",
-                    if (
-                        gasto.sincronizado
-                    ) {
+                    if (gasto.sincronizado) {
                         1
                     } else {
                         0
                     }
+                )
+
+                put(
+                    "usuario_id",
+                    usuarioId
                 )
             }
 
@@ -131,8 +227,13 @@ class GastoDatabaseHelper(
         return resultado != -1L
     }
 
-    fun listarGastos():
-        List<Gasto> {
+    fun listarGastos(
+        usuarioId: Long
+    ): List<Gasto> {
+
+        if (usuarioId <= 0) {
+            return emptyList()
+        }
 
         val gastos =
             mutableListOf<Gasto>()
@@ -144,8 +245,10 @@ class GastoDatabaseHelper(
             db.query(
                 TABLE_GASTOS,
                 null,
-                null,
-                null,
+                "usuario_id = ?",
+                arrayOf(
+                    usuarioId.toString()
+                ),
                 null,
                 null,
                 "data_hora ASC"
@@ -168,8 +271,13 @@ class GastoDatabaseHelper(
         return gastos
     }
 
-    fun listarGastosPendentes():
-        List<Gasto> {
+    fun listarGastosPendentes(
+        usuarioId: Long
+    ): List<Gasto> {
+
+        if (usuarioId <= 0) {
+            return emptyList()
+        }
 
         val gastos =
             mutableListOf<Gasto>()
@@ -181,8 +289,14 @@ class GastoDatabaseHelper(
             db.query(
                 TABLE_GASTOS,
                 null,
-                "sincronizado = ?",
-                arrayOf("0"),
+                """
+                sincronizado = ?
+                AND usuario_id = ?
+                """.trimIndent(),
+                arrayOf(
+                    "0",
+                    usuarioId.toString()
+                ),
                 null,
                 null,
                 "data_hora ASC"
@@ -207,8 +321,14 @@ class GastoDatabaseHelper(
 
     fun marcarGastoSincronizado(
         idLocal: String,
-        apiId: Long
+        apiId: Long,
+        usuarioId: Long
     ): Boolean {
+
+        if (usuarioId <= 0) {
+            return false
+        }
+
         val db =
             writableDatabase
 
@@ -229,8 +349,14 @@ class GastoDatabaseHelper(
             db.update(
                 TABLE_GASTOS,
                 values,
-                "id = ?",
-                arrayOf(idLocal)
+                """
+                id = ?
+                AND usuario_id = ?
+                """.trimIndent(),
+                arrayOf(
+                    idLocal,
+                    usuarioId.toString()
+                )
             )
 
         db.close()
@@ -239,8 +365,14 @@ class GastoDatabaseHelper(
     }
 
     fun marcarGastoPendente(
-        id: String
+        id: String,
+        usuarioId: Long
     ): Boolean {
+
+        if (usuarioId <= 0) {
+            return false
+        }
+
         val db =
             writableDatabase
 
@@ -256,8 +388,14 @@ class GastoDatabaseHelper(
             db.update(
                 TABLE_GASTOS,
                 values,
-                "id = ?",
-                arrayOf(id)
+                """
+                id = ?
+                AND usuario_id = ?
+                """.trimIndent(),
+                arrayOf(
+                    id,
+                    usuarioId.toString()
+                )
             )
 
         db.close()
@@ -266,17 +404,31 @@ class GastoDatabaseHelper(
     }
 
     fun buscarApiId(
-        idLocal: String
+        idLocal: String,
+        usuarioId: Long
     ): Long? {
+
+        if (usuarioId <= 0) {
+            return null
+        }
+
         val db =
             readableDatabase
 
         val cursor =
             db.query(
                 TABLE_GASTOS,
-                arrayOf("api_id"),
-                "id = ?",
-                arrayOf(idLocal),
+                arrayOf(
+                    "api_id"
+                ),
+                """
+                id = ?
+                AND usuario_id = ?
+                """.trimIndent(),
+                arrayOf(
+                    idLocal,
+                    usuarioId.toString()
+                ),
                 null,
                 null,
                 null
@@ -308,8 +460,14 @@ class GastoDatabaseHelper(
 
     fun atualizarStatusGasto(
         id: String,
-        status: String
+        status: String,
+        usuarioId: Long
     ): Boolean {
+
+        if (usuarioId <= 0) {
+            return false
+        }
+
         val db =
             writableDatabase
 
@@ -320,11 +478,6 @@ class GastoDatabaseHelper(
                     status
                 )
 
-                /*
-                 * Alterou localmente:
-                 * precisa sincronizar
-                 * novamente com a API.
-                 */
                 put(
                     "sincronizado",
                     0
@@ -335,8 +488,14 @@ class GastoDatabaseHelper(
             db.update(
                 TABLE_GASTOS,
                 values,
-                "id = ?",
-                arrayOf(id)
+                """
+                id = ?
+                AND usuario_id = ?
+                """.trimIndent(),
+                arrayOf(
+                    id,
+                    usuarioId.toString()
+                )
             )
 
         db.close()
@@ -344,7 +503,14 @@ class GastoDatabaseHelper(
         return linhasAtualizadas > 0
     }
 
-    fun contarGastos(): Int {
+    fun contarGastos(
+        usuarioId: Long
+    ): Int {
+
+        if (usuarioId <= 0) {
+            return 0
+        }
+
         val db =
             readableDatabase
 
@@ -353,8 +519,11 @@ class GastoDatabaseHelper(
                 """
                 SELECT COUNT(*)
                 FROM $TABLE_GASTOS
+                WHERE usuario_id = ?
                 """.trimIndent(),
-                null
+                arrayOf(
+                    usuarioId.toString()
+                )
             )
 
         var total = 0
@@ -401,6 +570,24 @@ class GastoDatabaseHelper(
                     "sincronizado"
                 )
             ) == 1
+
+        val usuarioIdIndex =
+            cursor.getColumnIndexOrThrow(
+                "usuario_id"
+            )
+
+        val usuarioId =
+            if (
+                cursor.isNull(
+                    usuarioIdIndex
+                )
+            ) {
+                null
+            } else {
+                cursor.getLong(
+                    usuarioIdIndex
+                )
+            }
 
         return Gasto(
             id =
@@ -456,7 +643,10 @@ class GastoDatabaseHelper(
                 apiId,
 
             sincronizado =
-                sincronizado
+                sincronizado,
+
+            usuarioId =
+                usuarioId
         )
     }
 
@@ -465,7 +655,10 @@ class GastoDatabaseHelper(
             "notegrana.db"
 
         private const val DATABASE_VERSION =
-            2
+            3
+
+        private const val JANELA_DUPLICIDADE_MS =
+            5_000L
 
         const val TABLE_GASTOS =
             "gastos"

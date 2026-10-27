@@ -20,7 +20,10 @@ class NotificationListener : NotificationListenerService() {
             MODE_PRIVATE
         )
             .edit()
-            .putString("status", "SERVICO_CONECTADO")
+            .putString(
+                "status",
+                "SERVICO_CONECTADO"
+            )
             .apply()
     }
 
@@ -29,23 +32,53 @@ class NotificationListener : NotificationListenerService() {
     ) {
         super.onNotificationPosted(sbn)
 
-        val notification = sbn?.notification ?: return
-        val extras = notification.extras
+        val usuarioId =
+            UsuarioAtivoStorage.obter(
+                applicationContext
+            )
+
+        if (usuarioId == null) {
+            Log.d(
+                "NoteGranaNotification",
+                "IGNORADA - Nenhum usuario ativo"
+            )
+
+            return
+        }
+
+        val notification =
+            sbn?.notification
+                ?: return
+
+        val extras =
+            notification.extras
 
         val title =
-            extras.getCharSequence("android.title")
+            extras
+                .getCharSequence(
+                    "android.title"
+                )
                 ?.toString()
                 ?: ""
 
         val text =
-            extras.getCharSequence("android.text")
+            extras
+                .getCharSequence(
+                    "android.text"
+                )
                 ?.toString()
                 ?: ""
 
-        val packageName = sbn.packageName ?: ""
+        val packageName =
+            sbn.packageName
+                ?: ""
 
-        // Ignora aplicativos definidos na blacklist
-        if (NotificationProcessor.isIgnoredApp(packageName)) {
+        if (
+            NotificationProcessor
+                .isIgnoredApp(
+                    packageName
+                )
+        ) {
             Log.d(
                 "NoteGranaNotification",
                 "IGNORADA - App: $packageName"
@@ -54,12 +87,12 @@ class NotificationListener : NotificationListenerService() {
             return
         }
 
-        // Verifica se a notificação possui padrão financeiro
         val financial =
-            NotificationProcessor.isFinancialTransaction(
-                title,
-                text
-            )
+            NotificationProcessor
+                .isFinancialTransaction(
+                    title,
+                    text
+                )
 
         if (!financial) {
             Log.d(
@@ -70,12 +103,12 @@ class NotificationListener : NotificationListenerService() {
             return
         }
 
-        // Extrai o valor da transação
         val value =
-            NotificationProcessor.extractValue(
-                title,
-                text
-            )
+            NotificationProcessor
+                .extractValue(
+                    title,
+                    text
+                )
 
         if (value == null) {
             Log.d(
@@ -86,29 +119,91 @@ class NotificationListener : NotificationListenerService() {
             return
         }
 
-        // Cria o gasto
-        val gasto = Gasto(
-            id = UUID.randomUUID().toString(),
-            valor = value,
-            titulo = title,
-            descricao = text,
-            pacoteOrigem = packageName,
-            dataHora = System.currentTimeMillis()
-        )
+        val dataHora =
+            System.currentTimeMillis()
 
-        // Abre o banco local
         val database =
-            GastoDatabaseHelper(applicationContext)
+            GastoDatabaseHelper(
+                applicationContext
+            )
 
-        // Insere o gasto no SQLite
+        /*
+         * Alguns aplicativos atualizam a mesma
+         * notificação logo depois de publicá-la.
+         *
+         * Isso pode fazer o Android chamar
+         * onNotificationPosted mais de uma vez.
+         *
+         * Se os dados forem exatamente iguais
+         * dentro de uma janela curta, ignoramos
+         * a segunda captura.
+         */
+        val duplicado =
+            database.existeGastoDuplicado(
+                usuarioId =
+                    usuarioId,
+
+                valor =
+                    value,
+
+                titulo =
+                    title,
+
+                descricao =
+                    text,
+
+                pacoteOrigem =
+                    packageName,
+
+                dataHora =
+                    dataHora
+            )
+
+        if (duplicado) {
+            Log.d(
+                "NoteGranaNotification",
+                "IGNORADA - Gasto duplicado"
+            )
+
+            return
+        }
+
+        val gasto =
+            Gasto(
+                id =
+                    UUID
+                        .randomUUID()
+                        .toString(),
+
+                valor =
+                    value,
+
+                titulo =
+                    title,
+
+                descricao =
+                    text,
+
+                pacoteOrigem =
+                    packageName,
+
+                dataHora =
+                    dataHora,
+
+                usuarioId =
+                    usuarioId
+            )
+
         val inserido =
-            database.inserirGasto(gasto)
+            database.inserirGasto(
+                gasto
+            )
 
         if (inserido) {
-
-            // Conta quantos gastos existem no banco
             val totalGastos =
-                database.contarGastos()
+                database.contarGastos(
+                    usuarioId
+                )
 
             Log.e(
                 "NoteGranaNotification",
@@ -117,11 +212,9 @@ class NotificationListener : NotificationListenerService() {
 
             Log.e(
                 "NoteGranaNotification",
-                "TOTAL DE GASTOS NO SQLITE: $totalGastos"
+                "TOTAL DE GASTOS DO USUARIO NO SQLITE: $totalGastos"
             )
 
-            // Mantemos o SharedPreferences somente
-            // como apoio para os testes desta etapa
             getSharedPreferences(
                 "notegrana_notifications",
                 MODE_PRIVATE
@@ -131,12 +224,30 @@ class NotificationListener : NotificationListenerService() {
                     "status",
                     "GASTO_SALVO_NO_SQLITE"
                 )
-                .putString("package", packageName)
-                .putString("titulo", title)
-                .putString("texto", text)
-                .putString("valor", value.toString())
-                .putString("id", gasto.id)
-                .putInt("total_gastos", totalGastos)
+                .putString(
+                    "package",
+                    packageName
+                )
+                .putString(
+                    "titulo",
+                    title
+                )
+                .putString(
+                    "texto",
+                    text
+                )
+                .putString(
+                    "valor",
+                    value.toString()
+                )
+                .putString(
+                    "id",
+                    gasto.id
+                )
+                .putInt(
+                    "total_gastos",
+                    totalGastos
+                )
                 .apply()
 
         } else {

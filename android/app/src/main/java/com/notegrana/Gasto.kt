@@ -9,5 +9,6 @@ data class Gasto(
     val dataHora: Long,
     val status: String = "ATIVO",
     val apiId: Long? = null,
-    val sincronizado: Boolean = false
+    val sincronizado: Boolean = false,
+    val usuarioId: Long? = null
 )

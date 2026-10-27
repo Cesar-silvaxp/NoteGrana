@@ -18,17 +18,83 @@ class GastoModule(
     }
 
     @ReactMethod
+    fun definirUsuarioAtivo(
+        usuarioId: Double,
+        promise: Promise
+    ) {
+        try {
+            val id =
+                usuarioId.toLong()
+
+            if (id <= 0) {
+                promise.reject(
+                    "USUARIO_INVALIDO",
+                    "ID do usuário inválido."
+                )
+                return
+            }
+
+            UsuarioAtivoStorage.salvar(
+                reactApplicationContext,
+                id
+            )
+
+            promise.resolve(true)
+
+        } catch (e: Exception) {
+            promise.reject(
+                "ERRO_DEFINIR_USUARIO_ATIVO",
+                e.message,
+                e
+            )
+        }
+    }
+
+    @ReactMethod
+    fun limparUsuarioAtivo(
+        promise: Promise
+    ) {
+        try {
+            UsuarioAtivoStorage.limpar(
+                reactApplicationContext
+            )
+
+            promise.resolve(true)
+
+        } catch (e: Exception) {
+            promise.reject(
+                "ERRO_LIMPAR_USUARIO_ATIVO",
+                e.message,
+                e
+            )
+        }
+    }
+
+    @ReactMethod
     fun listarGastos(
         promise: Promise
     ) {
         try {
+            val usuarioId =
+                obterUsuarioAtivo()
+
+            if (usuarioId == null) {
+                promise.reject(
+                    "USUARIO_NAO_AUTENTICADO",
+                    "Nenhum usuário ativo."
+                )
+                return
+            }
+
             val database =
                 GastoDatabaseHelper(
                     reactApplicationContext
                 )
 
             val gastos =
-                database.listarGastos()
+                database.listarGastos(
+                    usuarioId
+                )
 
             val lista =
                 Arguments.createArray()
@@ -57,14 +123,26 @@ class GastoModule(
         promise: Promise
     ) {
         try {
+            val usuarioId =
+                obterUsuarioAtivo()
+
+            if (usuarioId == null) {
+                promise.reject(
+                    "USUARIO_NAO_AUTENTICADO",
+                    "Nenhum usuário ativo."
+                )
+                return
+            }
+
             val database =
                 GastoDatabaseHelper(
                     reactApplicationContext
                 )
 
             val gastos =
-                database
-                    .listarGastosPendentes()
+                database.listarGastosPendentes(
+                    usuarioId
+                )
 
             val lista =
                 Arguments.createArray()
@@ -95,6 +173,17 @@ class GastoModule(
         promise: Promise
     ) {
         try {
+            val usuarioId =
+                obterUsuarioAtivo()
+
+            if (usuarioId == null) {
+                promise.reject(
+                    "USUARIO_NAO_AUTENTICADO",
+                    "Nenhum usuário ativo."
+                )
+                return
+            }
+
             val database =
                 GastoDatabaseHelper(
                     reactApplicationContext
@@ -104,7 +193,8 @@ class GastoModule(
                 database
                     .marcarGastoSincronizado(
                         idLocal,
-                        apiId.toLong()
+                        apiId.toLong(),
+                        usuarioId
                     )
 
             if (atualizado) {
@@ -112,7 +202,7 @@ class GastoModule(
             } else {
                 promise.reject(
                     "GASTO_NAO_ENCONTRADO",
-                    "O gasto informado não foi encontrado."
+                    "O gasto informado não foi encontrado para o usuário ativo."
                 )
             }
 
@@ -143,6 +233,17 @@ class GastoModule(
                 return
             }
 
+            val usuarioId =
+                obterUsuarioAtivo()
+
+            if (usuarioId == null) {
+                promise.reject(
+                    "USUARIO_NAO_AUTENTICADO",
+                    "Nenhum usuário ativo."
+                )
+                return
+            }
+
             val database =
                 GastoDatabaseHelper(
                     reactApplicationContext
@@ -152,7 +253,8 @@ class GastoModule(
                 database
                     .atualizarStatusGasto(
                         id,
-                        status
+                        status,
+                        usuarioId
                     )
 
             if (atualizado) {
@@ -160,7 +262,7 @@ class GastoModule(
             } else {
                 promise.reject(
                     "GASTO_NAO_ENCONTRADO",
-                    "O gasto informado não foi encontrado."
+                    "O gasto informado não foi encontrado para o usuário ativo."
                 )
             }
 
@@ -171,6 +273,12 @@ class GastoModule(
                 e
             )
         }
+    }
+
+    private fun obterUsuarioAtivo(): Long? {
+        return UsuarioAtivoStorage.obter(
+            reactApplicationContext
+        )
     }
 
     private fun converterGastoParaMap(
@@ -230,6 +338,17 @@ class GastoModule(
             "sincronizado",
             gasto.sincronizado
         )
+
+        if (gasto.usuarioId != null) {
+            item.putDouble(
+                "usuarioId",
+                gasto.usuarioId.toDouble()
+            )
+        } else {
+            item.putNull(
+                "usuarioId"
+            )
+        }
 
         return item
     }

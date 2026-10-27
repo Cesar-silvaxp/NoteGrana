@@ -5,7 +5,9 @@ import React, {
 } from 'react';
 
 import {
+  Alert,
   BackHandler,
+  NativeModules,
 } from 'react-native';
 
 import LoginScreen from './src/screens/LoginScreen';
@@ -43,6 +45,20 @@ interface Gasto {
   status: string;
 }
 
+interface GastoModuleType {
+  definirUsuarioAtivo:
+    (
+      usuarioId: number,
+    ) => Promise<boolean>;
+
+  limparUsuarioAtivo:
+    () => Promise<boolean>;
+}
+
+const GastoModule:
+  GastoModuleType | undefined =
+    NativeModules.GastoModule;
+
 type Tela =
   | 'login'
   | 'cadastro'
@@ -74,46 +90,176 @@ function App() {
     useState<string | null>(null);
 
   const [perfil, setPerfil] =
-    useState<UsuarioLogado | null>(null);
+    useState<UsuarioLogado | null>(
+      null,
+    );
 
   const [
-    tokenRecuperacao,
-    setTokenRecuperacao,
-  ] = useState<string | null>(null);
+    sessaoNativaPronta,
+    setSessaoNativaPronta,
+  ] = useState(false);
 
   const abrirDashboard =
     useCallback(() => {
       setTela('dashboard');
     }, []);
 
+  /*
+   * O app ainda não restaura JWT e
+   * perfil automaticamente ao abrir.
+   *
+   * Antes de permitir qualquer login,
+   * removemos uma possível sessão
+   * nativa antiga.
+   */
+  useEffect(() => {
+    let ativo = true;
+
+    async function prepararSessaoNativa() {
+      try {
+        if (!GastoModule) {
+          console.log(
+            'GastoModule não está disponível.',
+          );
+
+          return;
+        }
+
+        await GastoModule
+          .limparUsuarioAtivo();
+
+      } catch (error) {
+        console.log(
+          'Não foi possível limpar a sessão nativa inicial:',
+          error,
+        );
+
+      } finally {
+        if (ativo) {
+          setSessaoNativaPronta(
+            true,
+          );
+        }
+      }
+    }
+
+    prepararSessaoNativa();
+
+    return () => {
+      ativo = false;
+    };
+  }, []);
+
   const realizarLogin =
     useCallback(
-      (
+      async (
         novoToken: string,
         usuario: UsuarioLogado,
       ) => {
-        setToken(novoToken);
-        setPerfil(usuario);
-        setTela('permissao');
+        if (!sessaoNativaPronta) {
+          return;
+        }
+
+        if (!GastoModule) {
+          Alert.alert(
+            'Erro',
+            'Não foi possível iniciar a sessão no dispositivo.',
+          );
+
+          return;
+        }
+
+        try {
+          /*
+           * Primeiro registramos o usuário
+           * no Android.
+           *
+           * Só depois consideramos o login
+           * concluído no React.
+           */
+          await GastoModule
+            .definirUsuarioAtivo(
+              usuario.id,
+            );
+
+          setToken(novoToken);
+          setPerfil(usuario);
+          setGastoSelecionado(null);
+          setTela('permissao');
+
+        } catch (error) {
+          console.log(
+            'Não foi possível definir o usuário ativo:',
+            error,
+          );
+
+          Alert.alert(
+            'Erro',
+            'Não foi possível iniciar sua sessão no dispositivo. Tente novamente.',
+          );
+        }
+      },
+      [
+        sessaoNativaPronta,
+      ],
+    );
+
+  const sair =
+    useCallback(
+      async () => {
+        if (!GastoModule) {
+          Alert.alert(
+            'Erro',
+            'Não foi possível encerrar a sessão no dispositivo.',
+          );
+
+          return;
+        }
+
+        try {
+          /*
+           * Removemos primeiro o usuário
+           * ativo no Android.
+           *
+           * Assim o listener deixa de
+           * atribuir novos gastos à conta.
+           */
+          await GastoModule
+            .limparUsuarioAtivo();
+
+          setToken(null);
+          setPerfil(null);
+          setGastoSelecionado(null);
+          setTela('login');
+
+        } catch (error) {
+          console.log(
+            'Não foi possível limpar o usuário ativo:',
+            error,
+          );
+
+          Alert.alert(
+            'Erro',
+            'Não foi possível encerrar sua sessão com segurança. Tente novamente.',
+          );
+        }
       },
       [],
     );
 
-  const sair =
-    useCallback(() => {
-      setToken(null);
-      setPerfil(null);
-      setGastoSelecionado(null);
-      setTela('login');
-    }, []);
-
   /*
-   * Sempre que um novo JWT entrar
-   * na sessão, tentamos sincronizar
-   * os gastos locais pendentes.
+   * A sincronização só começa quando
+   * token e usuário existem.
+   *
+   * O GastoModule filtra os registros
+   * pelo usuario_id ativo.
    */
   useEffect(() => {
-    if (!token) {
+    if (
+      !token ||
+      !perfil ||
+      !sessaoNativaPronta
+    ) {
       return;
     }
 
@@ -131,6 +277,7 @@ function App() {
             `Sincronização concluída. ${total} gasto(s) sincronizado(s).`,
           );
         }
+
       } catch (error) {
         if (ativo) {
           console.log(
@@ -146,7 +293,11 @@ function App() {
     return () => {
       ativo = false;
     };
-  }, [token]);
+  }, [
+    token,
+    perfil?.id,
+    sessaoNativaPronta,
+  ]);
 
   useEffect(() => {
     const voltarAndroid = () => {
@@ -155,13 +306,17 @@ function App() {
         case 'cadastroConfirmado':
         case 'recuperarSenha':
         case 'recuperacaoConfirmada':
-        case 'permissao':
           setTela('login');
           return true;
 
+        case 'permissao':
+          void sair();
+          return true;
+
         case 'redefinirSenha':
-          setTokenRecuperacao(null);
-          setTela('recuperarSenha');
+          setTela(
+            'recuperarSenha',
+          );
           return true;
 
         case 'historico':
@@ -184,7 +339,9 @@ function App() {
         case 'senhaAlterada':
         case 'editarPerfil':
         case 'perfilAtualizado':
-          setTela('configuracoes');
+          setTela(
+            'configuracoes',
+          );
           return true;
 
         case 'login':
@@ -205,7 +362,23 @@ function App() {
     return () => {
       subscription.remove();
     };
-  }, [tela]);
+  }, [
+    tela,
+    sair,
+  ]);
+
+  /*
+   * Não mostramos o login enquanto
+   * a sessão nativa antiga ainda
+   * estiver sendo limpa.
+   *
+   * Isso elimina a possibilidade de
+   * um login ocorrer antes da limpeza
+   * inicial terminar.
+   */
+  if (!sessaoNativaPronta) {
+    return null;
+  }
 
   if (tela === 'login') {
     return (
@@ -215,7 +388,9 @@ function App() {
           setTela('cadastro')
         }
         onRecuperarSenha={() =>
-          setTela('recuperarSenha')
+          setTela(
+            'recuperarSenha',
+          )
         }
       />
     );
@@ -228,13 +403,18 @@ function App() {
           setTela('login')
         }
         onCadastrar={() =>
-          setTela('cadastroConfirmado')
+          setTela(
+            'cadastroConfirmado',
+          )
         }
       />
     );
   }
 
-  if (tela === 'cadastroConfirmado') {
+  if (
+    tela ===
+    'cadastroConfirmado'
+  ) {
     return (
       <CadastroConfirmadoScreen
         onVoltarLogin={() =>
@@ -244,44 +424,40 @@ function App() {
     );
   }
 
-  if (tela === 'recuperarSenha') {
+  if (
+    tela ===
+    'recuperarSenha'
+  ) {
     return (
       <RecuperarSenhaScreen
-        onVoltar={() => {
-          setTokenRecuperacao(null);
-          setTela('login');
-        }}
-        onEnviar={novoToken => {
-          setTokenRecuperacao(
-            novoToken,
-          );
-
+        onVoltar={() =>
+          setTela('login')
+        }
+        onEnviar={() =>
           setTela(
             'redefinirSenha',
-          );
-        }}
+          )
+        }
       />
     );
   }
 
   if (
-    tela === 'redefinirSenha' &&
-    tokenRecuperacao
+    tela ===
+    'redefinirSenha'
   ) {
     return (
       <RedefinirSenhaScreen
-        token={tokenRecuperacao}
-        onVoltar={() => {
-          setTokenRecuperacao(null);
-          setTela('recuperarSenha');
-        }}
-        onSenhaRedefinida={() => {
-          setTokenRecuperacao(null);
-
+        onVoltar={() =>
+          setTela(
+            'recuperarSenha',
+          )
+        }
+        onSenhaRedefinida={() =>
           setTela(
             'recuperacaoConfirmada',
-          );
-        }}
+          )
+        }
       />
     );
   }
@@ -315,7 +491,9 @@ function App() {
   ) {
     return (
       <DetalhesGastoScreen
-        gasto={gastoSelecionado}
+        gasto={
+          gastoSelecionado
+        }
         onVoltar={() =>
           setTela('historico')
         }
@@ -329,10 +507,17 @@ function App() {
         onVoltar={() =>
           setTela('dashboard')
         }
-        onSelecionarGasto={gasto => {
-          setGastoSelecionado(gasto);
-          setTela('detalhes');
-        }}
+        onSelecionarGasto={
+          gasto => {
+            setGastoSelecionado(
+              gasto,
+            );
+
+            setTela(
+              'detalhes',
+            );
+          }
+        }
       />
     );
   }
@@ -344,7 +529,9 @@ function App() {
           setTela('dashboard')
         }
         onAbrirConfiguracoes={() =>
-          setTela('configuracoes')
+          setTela(
+            'configuracoes',
+          )
         }
       />
     );
@@ -360,20 +547,29 @@ function App() {
         usuarioId={perfil.id}
         token={token}
         onVoltar={() =>
-          setTela('configuracoes')
+          setTela(
+            'configuracoes',
+          )
         }
         onSalvar={() =>
-          setTela('senhaAlterada')
+          setTela(
+            'senhaAlterada',
+          )
         }
       />
     );
   }
 
-  if (tela === 'senhaAlterada') {
+  if (
+    tela ===
+    'senhaAlterada'
+  ) {
     return (
       <SenhaAlteradaScreen
         onContinuar={() =>
-          setTela('configuracoes')
+          setTela(
+            'configuracoes',
+          )
         }
       />
     );
@@ -390,67 +586,94 @@ function App() {
         usuarioId={perfil.id}
         token={token}
         onVoltar={() =>
-          setTela('configuracoes')
-        }
-        onSalvar={novoPerfil => {
-          setPerfil(perfilAtual => {
-            if (!perfilAtual) {
-              return perfilAtual;
-            }
-
-            return {
-              ...perfilAtual,
-              nome: novoPerfil.nome,
-              email: novoPerfil.email,
-            };
-          });
-
           setTela(
-            'perfilAtualizado',
-          );
+            'configuracoes',
+          )
+        }
+        onSalvar={
+          novoPerfil => {
+            setPerfil(
+              perfilAtual => {
+                if (!perfilAtual) {
+                  return perfilAtual;
+                }
+
+                return {
+                  ...perfilAtual,
+                  nome:
+                    novoPerfil.nome,
+                  email:
+                    novoPerfil.email,
+                };
+              },
+            );
+
+            setTela(
+              'perfilAtualizado',
+            );
+          }
+        }
+      />
+    );
+  }
+
+  if (
+    tela ===
+    'perfilAtualizado'
+  ) {
+    return (
+      <PerfilAtualizadoScreen
+        onContinuar={() =>
+          setTela(
+            'configuracoes',
+          )
+        }
+      />
+    );
+  }
+
+  if (
+    tela ===
+      'configuracoes' &&
+    perfil
+  ) {
+    return (
+      <ConfiguracoesScreen
+        nomeUsuario={
+          perfil.nome
+        }
+        emailUsuario={
+          perfil.email
+        }
+        onEditarPerfil={() =>
+          setTela(
+            'editarPerfil',
+          )
+        }
+        onAbrirDashboard={() =>
+          setTela('dashboard')
+        }
+        onAbrirRelatorios={() =>
+          setTela(
+            'relatorios',
+          )
+        }
+        onAlterarSenha={() =>
+          setTela(
+            'alterarSenha',
+          )
+        }
+        onSair={() => {
+          void sair();
         }}
       />
     );
   }
 
   if (
-    tela === 'perfilAtualizado'
+    !perfil ||
+    !token
   ) {
-    return (
-      <PerfilAtualizadoScreen
-        onContinuar={() =>
-          setTela('configuracoes')
-        }
-      />
-    );
-  }
-
-  if (
-    tela === 'configuracoes' &&
-    perfil
-  ) {
-    return (
-      <ConfiguracoesScreen
-        nomeUsuario={perfil.nome}
-        emailUsuario={perfil.email}
-        onEditarPerfil={() =>
-          setTela('editarPerfil')
-        }
-        onAbrirDashboard={() =>
-          setTela('dashboard')
-        }
-        onAbrirRelatorios={() =>
-          setTela('relatorios')
-        }
-        onAlterarSenha={() =>
-          setTela('alterarSenha')
-        }
-        onSair={sair}
-      />
-    );
-  }
-
-  if (!perfil || !token) {
     return (
       <LoginScreen
         onLogin={realizarLogin}
@@ -458,7 +681,9 @@ function App() {
           setTela('cadastro')
         }
         onRecuperarSenha={() =>
-          setTela('recuperarSenha')
+          setTela(
+            'recuperarSenha',
+          )
         }
       />
     );
@@ -466,15 +691,21 @@ function App() {
 
   return (
     <DashboardScreen
-      nomeUsuario={perfil.nome}
+      nomeUsuario={
+        perfil.nome
+      }
       onAbrirHistorico={() =>
         setTela('historico')
       }
       onAbrirRelatorios={() =>
-        setTela('relatorios')
+        setTela(
+          'relatorios',
+        )
       }
       onAbrirConfiguracoes={() =>
-        setTela('configuracoes')
+        setTela(
+          'configuracoes',
+        )
       }
     />
   );

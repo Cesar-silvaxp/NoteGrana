@@ -20,16 +20,17 @@ interface ErroApi {
 }
 
 interface RedefinirSenhaScreenProps {
-  token: string;
   onVoltar: () => void;
   onSenhaRedefinida: () => void;
 }
 
 function RedefinirSenhaScreen({
-  token,
   onVoltar,
   onSenhaRedefinida,
 }: RedefinirSenhaScreenProps) {
+  const [codigo, setCodigo] =
+    useState('');
+
   const [novaSenha, setNovaSenha] =
     useState('');
 
@@ -51,13 +52,46 @@ function RedefinirSenhaScreen({
     setCarregando,
   ] = useState(false);
 
+  function atualizarCodigo(
+    texto: string,
+  ) {
+    const codigoNormalizado =
+      texto
+        .replace(/\s/g, '')
+        .toUpperCase()
+        .slice(0, 10);
+
+    setCodigo(
+      codigoNormalizado,
+    );
+
+    if (erro) {
+      setErro('');
+    }
+  }
+
   async function redefinirSenha() {
+    const codigoNormalizado =
+      codigo
+        .trim()
+        .toUpperCase();
+
     if (
+      !codigoNormalizado ||
       !novaSenha ||
       !confirmarNovaSenha
     ) {
       setErro(
         'Preencha todos os campos para continuar.',
+      );
+      return;
+    }
+
+    if (
+      codigoNormalizado.length !== 10
+    ) {
+      setErro(
+        'Digite o código de recuperação de 10 caracteres enviado por e-mail.',
       );
       return;
     }
@@ -91,7 +125,8 @@ function RedefinirSenhaScreen({
               'application/json',
           },
           body: JSON.stringify({
-            token,
+            token:
+              codigoNormalizado,
             novaSenha,
             confirmacaoNovaSenha:
               confirmarNovaSenha,
@@ -130,7 +165,7 @@ function RedefinirSenhaScreen({
 
         setErro(
           erroApi?.mensagem ??
-            'Não foi possível redefinir a senha.',
+            'Código inválido ou expirado. Solicite um novo código e tente novamente.',
         );
 
         return;
@@ -184,8 +219,43 @@ function RedefinirSenhaScreen({
 
         <Text
           style={styles.description}>
-          Escolha uma nova senha para
-          acessar sua conta do NoteGrana.
+          Digite o código de recuperação enviado
+          para seu e-mail e escolha uma nova senha.
+        </Text>
+
+        <View style={styles.emailNotice}>
+          <Text
+            style={
+              styles.emailNoticeText
+            }>
+            O código é válido por 15 minutos.
+            Se não encontrou o e-mail, verifique
+            também a pasta Spam ou Lixo eletrônico.
+          </Text>
+        </View>
+
+        <Text style={styles.label}>
+          Código de recuperação
+        </Text>
+
+        <TextInput
+          style={styles.codeInput}
+          placeholder="Ex.: ABCD234XYZ"
+          placeholderTextColor="#999999"
+          value={codigo}
+          onChangeText={
+            atualizarCodigo
+          }
+          autoCapitalize="characters"
+          autoCorrect={false}
+          maxLength={10}
+          editable={!carregando}
+          textContentType="oneTimeCode"
+        />
+
+        <Text
+          style={styles.codeHint}>
+          Digite os 10 caracteres recebidos por e-mail.
         </Text>
 
         <Text style={styles.label}>
@@ -210,7 +280,9 @@ function RedefinirSenhaScreen({
                 setErro('');
               }
             }}
-            secureTextEntry={!mostrarSenha}
+            secureTextEntry={
+              !mostrarSenha
+            }
             editable={!carregando}
           />
 
@@ -243,7 +315,9 @@ function RedefinirSenhaScreen({
             }
             placeholder="Digite novamente a nova senha"
             placeholderTextColor="#777777"
-            value={confirmarNovaSenha}
+            value={
+              confirmarNovaSenha
+            }
             onChangeText={texto => {
               setConfirmirmarNovaSenha(
                 texto,
@@ -253,7 +327,9 @@ function RedefinirSenhaScreen({
                 setErro('');
               }
             }}
-            secureTextEntry={!mostrarSenha}
+            secureTextEntry={
+              !mostrarSenha
+            }
             editable={!carregando}
             onSubmitEditing={
               redefinirSenha
@@ -353,7 +429,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 19,
     textAlign: 'center',
-    marginBottom: 30,
+    marginBottom: 18,
+  },
+
+  emailNotice: {
+    width: '100%',
+    backgroundColor: '#F0F8EF',
+    borderRadius: 13,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    marginBottom: 24,
+  },
+
+  emailNoticeText: {
+    color: '#4F6F4B',
+    fontSize: 10,
+    lineHeight: 16,
+    textAlign: 'center',
   },
 
   label: {
@@ -361,6 +453,28 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: 'bold',
     marginBottom: 7,
+    marginLeft: 3,
+  },
+
+  codeInput: {
+    width: '100%',
+    height: 52,
+    backgroundColor: '#F3F3F3',
+    borderRadius: 13,
+    paddingHorizontal: 18,
+    color: '#222222',
+    fontSize: 17,
+    fontWeight: 'bold',
+    letterSpacing: 3,
+    textAlign: 'center',
+    marginBottom: 10,
+    elevation: 3,
+  },
+
+  codeHint: {
+    color: '#999999',
+    fontSize: 9,
+    marginBottom: 20,
     marginLeft: 3,
   },
 
